@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "VIP Tour Anonymizer",
+  "version": "1.0.0",
+  "description": "Anonymizes specific content on webpages before rendering to enable safe product demos",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://dash.parsely.com/*",
+        "https://app.parsely.com/*",
+        "https://*.parsely.com/*"
+      ],
+      "js": ["content/anonymizer.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "VIP Tour Anonymizer"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "content/config.json"],
+      "matches": [
+        "https://dash.parsely.com/*",
+        "https://app.parsely.com/*",
+        "https://*.parsely.com/*"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  }
+} 

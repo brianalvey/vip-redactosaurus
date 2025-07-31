@@ -1,0 +1,16 @@
+# Placeholder Image Instructions
+
+This file should be replaced with an actual placeholder image (JPG format) that will be used when replacing sensitive images in the anonymization process.
+
+Recommended specifications:
+- Format: JPG
+- Size: 400x300 pixels (or larger)
+- Content: A generic placeholder with text like "Image Placeholder" or a simple icon
+- File size: Under 50KB for fast loading
+
+The image will be used by the extension to replace sensitive images while preserving the original dimensions and styling.
+
+You can create this image using any image editor or download a free placeholder from services like:
+- https://placeholder.com/
+- https://picsum.photos/
+- Or create a simple one with your preferred design tool 

@@ -1,0 +1,104 @@
+{
+  "transformations": [
+    {
+      "name": "headlines",
+      "selectors": [
+        "a.post-title", "div.title h1",
+        "[sample-data-testid*='headline']", "[sample-data-testid*='title']"
+      ],
+      "type": "scramble",
+      "options": {
+        "preserveCase": true,
+        "preservePunctuation": true,
+        "preserveSpaces": true
+      }
+    },
+    {
+      "name": "author_names",
+      "selectors": [
+        "p.author-name", "p.byline",
+        "[data-testid*='author']", "[data-testid*='byline']"
+      ],
+      "type": "static_replacement",
+      "options": {
+        "replacements": {
+          "first_names": ["Alex", "Sam", "Jordan", "Casey", "Taylor", "Morgan", "Riley", "Quinn"],
+          "last_names": ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"]
+        }
+      }
+    },
+    {
+      "name": "customer_names",
+      "selectors": [
+        "a.publisher-link span.publisher-info", "div.publisher span.site-name-wrapper span"
+      ],
+      "type": "static_replacement",
+      "options": {
+        "replacements": {
+          "company_names": ["Parsely Customer"]
+        }
+      }
+    },
+        {
+        "name": "customer_domains",
+        "selectors": [
+          "div.toggle-content div span", "span.site-name-wrapper span.highlighted"
+        ],
+        "type": "static_replacement",
+        "options": {
+          "replacements": {
+            "company_names": ["example.com"]
+          }
+        }
+      },
+      {
+        "name": "subdirectory_replacement",
+        "selectors": [
+          ".your-custom-class",
+          "[data-testid='domain-display']"
+        ],
+        "type": "replace_subdirectory",
+        "options": {
+          "replacementValue": "example.com"
+        }
+      },
+      {
+      "name": "article_thumbnails",
+      "selectors": [
+        "img[src*='avatar']", "img[src*='profile']", "img[src*='user']", "img.thumbnail",
+        ".avatar img", ".profile-photo img", ".user-photo img",
+        "[data-testid*='avatar'] img", "[data-testid*='profile'] img"
+      ],
+      "type": "blur",
+      "options": {
+        "blurAmount": "6px",
+        "fallbackImage": "assets/placeholder.jpg"
+      }
+    },
+    {
+      "name": "profile_photos",
+      "selectors": [
+        "div.thumb img", "img.hthumbnail",
+        "[data-testid*='thumbnail'] img", "[data-testid*='image'] img"
+      ],
+      "type": "replace_image",
+      "options": {
+        "replacementImage": "assets/placeholder.jpg",
+        "preserveDimensions": true
+      }
+    }
+  ],
+  "globalOptions": {
+    "enableOnLoad": true,
+    "observeMutations": true,
+    "mutationObserverOptions": {
+      "childList": true,
+      "subtree": true,
+      "attributes": true,
+      "attributeFilter": ["src", "alt", "title"]
+    }
+  },
+  "matches": [
+    "https://*.parsely.com/*"
+  ]
+} 
