@@ -9,7 +9,7 @@
   let isEnabled = true;
   let observer = null;
   let processedElements = new WeakSet(); // Track processed elements to prevent re-anonymization
-  let capturedSubdirectory = null; // Store the captured subdirectory from URL
+  let capturedValues = {}; // Store captured values from URL/XPath
 
   // Transformation functions
   const transformers = {
@@ -52,7 +52,7 @@
 
     // Static text replacement
     static_replacement: function(text, options = {}) {
-      const { replacements } = options;
+      const { replacements, caseSensitive = true } = options;
       
       if (!text || typeof text !== 'string') return text;
       
@@ -78,15 +78,44 @@
       return text;
     },
 
-    // Replace captured subdirectory with replacement value
-    replace_subdirectory: function(text, options = {}) {
-      const { replacementValue = "example.com" } = options;
+    // Replace captured values with configured replacements
+    dynamic_replacement: function(text, options = {}) {
+      const { replacements = {}, caseSensitive = true } = options;
       
       if (!text || typeof text !== 'string') return text;
-      if (!capturedSubdirectory) return text;
+      
+      let result = text;
+      const flags = caseSensitive ? 'g' : 'gi';
+      
+      // Apply each replacement rule
+      Object.entries(replacements).forEach(([searchValue, replacementValue]) => {
+        // Check if searchValue references a captured value (e.g., "{hostname}")
+        if (searchValue.startsWith('{') && searchValue.endsWith('}')) {
+          const captureKey = searchValue.slice(1, -1);
+          if (capturedValues[captureKey]) {
+            const regex = new RegExp(capturedValues[captureKey].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+            result = result.replace(regex, replacementValue);
+          }
+        } else {
+          // Direct string replacement
+          const regex = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+          result = result.replace(regex, replacementValue);
+        }
+      });
+      
+      return result;
+    },
+
+    // Legacy support for replace_subdirectory
+    replace_subdirectory: function(text, options = {}) {
+      const { replacementValue = "example.com", caseSensitive = true } = options;
+      
+      if (!text || typeof text !== 'string') return text;
+      if (!capturedValues.subdirectory) return text;
       
       // Replace the captured subdirectory with the replacement value
-      const regex = new RegExp(capturedSubdirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      const flags = caseSensitive ? 'g' : 'gi';
+      const regex = new RegExp(capturedValues.subdirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
       return text.replace(regex, replacementValue);
     },
 
@@ -170,6 +199,13 @@
         case 'replace_image':
           transformers.replace_image(element, transformation.options);
           processedElements.add(element);
+          break;
+          
+        case 'dynamic_replacement':
+          if (element.textContent) {
+            element.textContent = transformers.dynamic_replacement(element.textContent, transformation.options);
+            processedElements.add(element);
+          }
           break;
           
         case 'replace_subdirectory':
@@ -262,21 +298,70 @@
     observer.observe(document.body || document.documentElement, options);
   }
 
-  // Capture subdirectory from URL
-  function captureSubdirectory() {
+  // Capture values from URL and XPath
+  function captureValues() {
     try {
       const url = window.location.href;
       const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
       
+      // Capture URL components
+      capturedValues.hostname = urlObj.hostname;
+      capturedValues.domain = urlObj.hostname.replace(/^www\./, '');
+      capturedValues.protocol = urlObj.protocol.replace(':', '');
+      capturedValues.port = urlObj.port;
+      capturedValues.fullUrl = url;
+      
+      // Capture path components
+      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
       if (pathParts.length > 0) {
-        capturedSubdirectory = pathParts[0];
-        console.log('VIP Tour Anonymizer: Captured subdirectory:', capturedSubdirectory);
-      } else {
-        console.log('VIP Tour Anonymizer: No subdirectory found in URL');
+        capturedValues.subdirectory = pathParts[0];
+        capturedValues.firstPath = pathParts[0];
+        capturedValues.lastPath = pathParts[pathParts.length - 1];
+        capturedValues.fullPath = urlObj.pathname;
       }
+      
+      // Capture query parameters
+      const searchParams = new URLSearchParams(urlObj.search);
+      searchParams.forEach((value, key) => {
+        capturedValues[`param_${key}`] = value;
+      });
+      
+      // Capture values from XPath (if configured)
+      if (config && config.valueCapture && config.valueCapture.xpath) {
+        Object.entries(config.valueCapture.xpath).forEach(([key, xpath]) => {
+          try {
+            const result = document.evaluate(xpath, document, null, XPathResult.STRING_TYPE, null);
+            if (result.stringValue) {
+              capturedValues[key] = result.stringValue.trim();
+            }
+          } catch (error) {
+            console.warn(`VIP Tour Anonymizer: Error evaluating XPath "${xpath}":`, error);
+          }
+        });
+      }
+      
+      // Capture values from URL regex (if configured)
+      if (config && config.valueCapture && config.valueCapture.urlRegex) {
+        Object.entries(config.valueCapture.urlRegex).forEach(([key, regexPattern]) => {
+          try {
+            const regex = new RegExp(regexPattern);
+            const match = url.match(regex);
+            if (match && match[1]) {
+              capturedValues[key] = match[1].trim();
+            }
+          } catch (error) {
+            console.warn(`VIP Tour Anonymizer: Error evaluating URL regex "${regexPattern}":`, error);
+          }
+        });
+      }
+
+      // Print siteName and customerDomain specifically
+      console.log('VIP Tour Anonymizer: siteName:', capturedValues.siteName);
+      console.log('VIP Tour Anonymizer: customerDomain:', capturedValues.customerDomain);
+      
+      console.log('VIP Tour Anonymizer: Captured values:', capturedValues);
     } catch (error) {
-      console.warn('VIP Tour Anonymizer: Error capturing subdirectory:', error);
+      console.warn('VIP Tour Anonymizer: Error capturing values:', error);
     }
   }
 
@@ -398,8 +483,8 @@
   async function init() {
     await loadConfig();
     
-    // Capture subdirectory from URL
-    captureSubdirectory();
+    // Capture values from URL and XPath
+    captureValues();
     
     // Load initial enabled state from storage
     try {

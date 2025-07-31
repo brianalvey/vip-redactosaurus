@@ -1,4 +1,12 @@
 {
+  "valueCapture": {
+    "xpath": {
+      "siteName": "a.publisher-link span.publisher-info"
+    },
+    "urlRegex": {
+      "customerDomain": "^https?://[^/]+/([^/]+)"
+    }
+  },
   "transformations": [
     {
       "name": "headlines",
@@ -21,6 +29,7 @@
       ],
       "type": "static_replacement",
       "options": {
+        "caseSensitive": false,
         "replacements": {
           "first_names": ["Alex", "Sam", "Jordan", "Casey", "Taylor", "Morgan", "Riley", "Quinn"],
           "last_names": ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"]
@@ -34,6 +43,7 @@
       ],
       "type": "static_replacement",
       "options": {
+        "caseSensitive": false,
         "replacements": {
           "company_names": ["Parsely Customer"]
         }
@@ -42,23 +52,40 @@
         {
         "name": "customer_domains",
         "selectors": [
-          "div.toggle-content div span", "span.site-name-wrapper span.highlighted"
+          "div.toggle-content div span", "span.site-name-wrapper span.highlighted",
+          "//div.menu/input/@value", "input.filter"
         ],
         "type": "static_replacement",
         "options": {
+          "caseSensitive": false,
           "replacements": {
             "company_names": ["example.com"]
           }
         }
       },
       {
+        "name": "dynamic_domain_replacement",
+        "selectors": [
+          "div.gsc-item-wrapper span",
+          ".site-url"
+        ],
+        "type": "dynamic_replacement",
+        "options": {
+          "caseSensitive": false,
+          "replacements": {
+            "{siteName}": "Parsely CUSTOMER",
+            "{customerDomain}": "ExAmPLE.cOM"
+          }
+        }
+      },
+      {
         "name": "subdirectory_replacement",
         "selectors": [
-          ".your-custom-class",
-          "[data-testid='domain-display']"
+          ".legacy-domain-class"
         ],
         "type": "replace_subdirectory",
         "options": {
+          "caseSensitive": true,
           "replacementValue": "example.com"
         }
       },
