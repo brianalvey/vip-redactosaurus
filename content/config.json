@@ -53,7 +53,7 @@
         "name": "customer_domains",
         "selectors": [
           "div.toggle-content div span", "span.site-name-wrapper span.highlighted",
-          "//div.menu/input/@value", "input.filter"
+          "//div/input/@value", "input.filter"
         ],
         "type": "static_replacement",
         "options": {

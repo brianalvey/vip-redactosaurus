@@ -1,4 +1,4 @@
-# VIP Tour Anonymizer
+# VIP Redactosaurus
 
 A Chrome extension that anonymizes specific content on webpages **before they render**, enabling safe product demos without revealing private customer data. The extension prevents any flash of non-anonymized content, making it perfect for walkthrough videos and screen recordings.
 
@@ -17,7 +17,7 @@ A Chrome extension that anonymizes specific content on webpages **before they re
 ## 📁 Project Structure
 
 ```
-vip-tour/
+vip-redactosaurus/
 ├── manifest.json              # Chrome extension manifest
 ├── content/
 │   ├── anonymizer.js          # Main content script
