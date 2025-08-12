@@ -1,6 +1,6 @@
 # VIP Redactosaurus
 
-A Chrome extension that anonymizes specific content on webpages **before they render**, enabling safe product demos without revealing private customer data. The extension prevents any flash of non-anonymized content, making it perfect for walkthrough videos and screen recordings.
+A Chrome extension that anonymizes specific content patterns on webpages **before they render**, allowing safe product demos that don't reveal private customer data. This extension prevents flashes of non-anonymized content, making it perfect for walkthrough videos and screen recordings.
 
 ## 🚀 Features
 
@@ -13,27 +13,6 @@ A Chrome extension that anonymizes specific content on webpages **before they re
   - **Image Replacement**: Swap images with placeholders
 - **Dynamic Content Support**: Handles SPAs and dynamically loaded content
 - **Easy Toggle**: Enable/disable anonymization via popup
-
-## 📁 Project Structure
-
-```
-vip-redactosaurus/
-├── manifest.json              # Chrome extension manifest
-├── content/
-│   ├── anonymizer.js          # Main content script
-│   └── config.json            # Transformation configuration
-├── background/
-│   └── background.js          # Service worker
-├── popup/
-│   ├── popup.html            # Extension popup UI
-│   └── popup.js              # Popup functionality
-├── assets/
-│   ├── placeholder.jpg        # Image replacement placeholder
-│   ├── icon16.png            # Extension icon (16x16)
-│   ├── icon48.png            # Extension icon (48x48)
-│   └── icon128.png           # Extension icon (128x128)
-└── README.md                 # This file
-```
 
 ## 🛠 Installation
 
@@ -134,7 +113,7 @@ To target specific content, add selectors to the configuration:
 2. Add the transformation type to the `applyTransformation` function
 3. Update your `config.json` to use the new transformation type
 
-### Targeting Specific Sites
+### Limiting this to Specific Websites
 
 Modify the `matches` field in `manifest.json` to target specific URLs:
 

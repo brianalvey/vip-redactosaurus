@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "VIP Tour Anonymizer",
+  "name": "VIP Redactosaurus",
   "version": "1.0.0",
   "description": "Anonymizes specific content on webpages before rendering to enable safe product demos",
   "permissions": [
