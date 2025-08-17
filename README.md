@@ -11,6 +11,7 @@ A Chrome extension that anonymizes specific content patterns on webpages **befor
   - **Static Replacement**: Replace names with preset alternatives
   - **Image Blurring**: Blur sensitive images
   - **Image Replacement**: Swap images with placeholders
+  - **Custom CSS Injection**: Apply arbitrary CSS rules with RGBA colors
 - **Dynamic Content Support**: Handles SPAs and dynamically loaded content
 - **Easy Toggle**: Enable/disable anonymization via popup
 
@@ -76,6 +77,25 @@ The extension uses `content/config.json` to define what content to anonymize and
      "options": {
        "replacementImage": "assets/placeholder.jpg",
        "preserveDimensions": true
+     }
+   }
+   ```
+
+5. **`custom_css`**: Inject arbitrary CSS rules into the document
+   ```json
+   {
+     "type": "custom_css",
+     "options": {
+       "cssRules": [
+         {
+           "selector": ".sensitive-element",
+           "properties": {
+             "color": "rgba(255, 0, 0, 0.8)",
+             "background-color": "rgba(0, 255, 0, 0.2)",
+             "border": "2px solid rgba(0, 0, 255, 0.6)"
+           }
+         }
+       ]
      }
    }
    ```
