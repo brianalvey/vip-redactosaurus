@@ -8,7 +8,7 @@
   },
   "transformations": [
     {
-      "name": "top_posts",
+      "name": "top_posts_headlines",
       "selectors": [
         "a.post-title",
         "div.title h1"
@@ -21,7 +21,10 @@
       "options": {
         "preserveCase": true,
         "preservePunctuation": true,
-        "preserveSpaces": true
+        "preserveSpaces": true,
+        "preserveEnds": true,
+        "preservePosition": true,
+        "preserveVowels": true
       }
     },
     {
@@ -43,24 +46,6 @@
       }
     },
     {
-      "name": "customer_names",
-      "selectors": [
-        "a.publisher-link span.publisher-info"
-      ],
-      "type": "static_replacement",
-      "options": {
-        "caseSensitive": false,
-        "captureBeforeReplace": {
-            "customerName": "//a[@class='publisher-link']//span[contains(@class, 'publisher-info')]/text()"
-          },
-        "replacements": {
-          "company_names": [
-            "Customer X"
-          ]
-        }
-      }
-    },
-    {
       "name": "customer_domains",
       "selectors": [
         "div.sitepicker div.toggle-content div span",
@@ -75,24 +60,79 @@
         "caseSensitive": false,
         "replacements": {
           "company_names": [
-            "customerx.com"
+            "customerdomain.com AAA"
           ]
         }
       }
     },
     {
-      "name": "dynamic_domain_replacement",
+      "name": "customer_names",
       "selectors": [
-        "div.gsc-item-wrapper span", "div.post-metas a.post-row-tag-internal",
-        ".site-url", "span.gsc-label", "#tooltip"
+        "a.publisher-link span.publisher-info", "div.sitepicker div.publisher span.site-name-wrapper span"
+      ],
+      "type": "static_replacement",
+      "options": {
+        "caseSensitive": false,
+        "captureBeforeReplace": {
+            "customerName": "//a[@class='publisher-link']//span[contains(@class, 'publisher-info')]/text()"
+          },
+        "replacements": {
+          "company_names": [
+            "Customer Name"
+          ]
+        }
+      }
+    },
+    {
+      "name": "partial_replacement_tooltip",
+      "selectors": [
+        "#tooltip"
       ],
       "type": "dynamic_replacement",
       "options": {
         "caseSensitive": false,
         "replacements": {
-          "{customerName}": "Customer X",
-          "{customerDomain}": "customerx.com"
+          "{customerName}": "Customer Name",
+          "{customerDomain}": "customerdomain.com"
         }
+      }
+    },
+    {
+      "name": "partial_replacement",
+      "selectors": [
+        "div.gsc-item-wrapper span", "div.post-metas a.post-row-tag-internal",
+        ".site-url", "span.gsc-label", "div.metas-listing div.title a",
+        "div.gsc-listing div.google-key-label", "div.overview-listing div.metas-listing a"
+      ],
+      "type": "dynamic_replacement",
+      "options": {
+        "caseSensitive": false,
+        "replacements": {
+          "{customerName}": "customer name",
+          "{customerDomain}": "customerdomain.com"
+        },
+        "splitReplacements": {
+          "{customerName}": "Customer Name"
+        },
+        "ignoreWords": [
+          "the", "and", "or", "inc", "corp", "llc", "ltd"
+        ]
+      }
+    },
+    {
+      "name": "url_with_spaces_replacement",
+      "selectors": [
+        "div.gsc-listing div.post-metas div.col div"
+      ],
+      "type": "dynamic_replacement",
+      "options": {
+        "caseSensitive": false,
+        "splitReplacements": {
+          "{customerName}": "customername DDD"
+        },
+        "ignoreWords": [
+          "the", "and", "or", "inc", "corp", "llc", "ltd"
+        ]
       }
     },
     {
@@ -103,14 +143,14 @@
       "type": "replace_subdirectory",
       "options": {
         "caseSensitive": true,
-        "replacementValue": "customerx.com"
+        "replacementValue": "customerdomain.com EEE"
       }
     },
     {
       "name": "article_thumbnails",
       "selectors": [
-        "div.thumb img PAUSE",
-        "img.hthumbnail PAUSE"
+        "div.thumb img",
+        "img.hthumbnail"
       ],
       "type": "blur",
       "options": {
@@ -133,6 +173,17 @@
       "options": {
         "replacementImage": "assets/placeholder.jpg",
         "preserveDimensions": true
+      }
+    },
+    {
+      "name": "link_url_masking",
+      "selectors": [
+        "a[href]"
+      ],
+      "type": "mask_links",
+      "options": {
+        "maskUrl": "https://dash.parsely-fake.com",
+        "preserveFunction": true
       }
     },
     {

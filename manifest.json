@@ -14,7 +14,7 @@
         "https://app.parsely.com/*",
         "https://*.parsely.com/*"
       ],
-      "js": ["content/anonymizer.js"],
+      "js": ["content/redactosaurus.js"],
       "run_at": "document_start",
       "all_frames": true
     }

@@ -1,21 +1,9 @@
 {
-  "valueCapture": {
-    "cssSelectors": {
-    },
-    "urlRegex": {
-      "customerDomain": "^https?://[^/]+/([^/]+)"
-    }
-  },
   "transformations": [
     {
-      "name": "top_posts_headlines",
+      "name": "headline_scrambling",
       "selectors": [
-        "a.post-title",
-        "div.title h1"
-      ],
-      "_sampleSelectors": [
-        "[sample-data-testid*='headline']",
-        "[sample-data-testid*='title']"
+        "a.post-title", "div.title h1"
       ],
       "type": "scramble",
       "options": {
@@ -23,198 +11,72 @@
         "preservePunctuation": true,
         "preserveSpaces": true,
         "preserveEnds": true,
-        "preservePosition": true
+        "preservePosition": true,
+        "preserveVowels": true
       }
     },
     {
-      "name": "author_names",
+      "name": "author_replacement",
       "selectors": [
         "p.author-name", "p.byline", "div.post-metas div.author a", "div.byline span.byline-meta span a"
       ],
-      "_sampleSelectors": [
-        "[data-testid*='author']",
-        "[data-testid*='byline']"
-      ],
-      "type": "static_replacement",
+      "type": "static_replace",
       "options": {
-        "caseSensitive": false,
         "replacements": {
-          "first_names": ["Aisha", "Benjamin", "Carmen", "Dmitri", "Elena", "Finn", "Grace", "Hassan", "Isabella", "Jin", "Kenji", "Lucia", "Miguel", "Nora", "Omar", "Priya", "Quinn", "Raj", "Sofia", "Tomoko", "Ulrich", "Veronica", "Wei", "Ximena", "Yuki", "Zara", "Adrian", "Beatrice", "Carlos", "Diana", "Ethan", "Fatima", "Gabriel", "Hana", "Ivan", "Jasmine", "Klaus", "Leila", "Marco", "Natasha", "Oscar", "Petra", "Quincy", "Rosa", "Sebastian", "Tara", "Uri", "Victoria", "Wolfgang", "Xander", "Yvette", "Zachary"],
-          "last_names": ["Anderson", "Blackwood", "Chen", "Delacroix", "Eriksson", "Fernandez", "Gonzalez", "Hoffman", "Ivanov", "Jackson", "Kim", "Lopez", "Murphy", "Nakamura", "O'Brien", "Patel", "Quinn", "Rodriguez", "Singh", "Thompson", "Ueda", "Volkov", "Williams", "Xu", "Yamamoto", "Ziegler", "Abramovich", "Brennan", "Castillo", "Davies", "Engström", "Fischer", "García", "Hashimoto", "Ibrahim", "Jensen", "Kowalski", "Laurent", "Martínez", "Nielsen", "Okafor", "Petrov", "Qureshi", "Rossi", "Swanson", "Taylor", "Underwood", "Varga", "Walsh", "Xiang", "Yoshida", "Zimmerman"]
+          "jsFunction": "randomAuthorName"
         }
       }
     },
     {
-      "name": "customer_domains",
+      "name": "customer_name_replacement",
       "selectors": [
-        "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted"
+        ".customer-name",
+        ".site-name",
+        ".publisher-name"
       ],
-      "_sampleSelectors": [
-        "//div/input/@value",
-        "input.filter"
-      ],
-      "type": "static_replacement",
+      "type": "static_replace",
       "options": {
-        "caseSensitive": false,
         "replacements": {
-          "company_names": [
-            "customerdomain.com AAA"
-          ]
+          "jsFunction": "randomCompanyName"
         }
       }
     },
     {
-      "name": "customer_names",
+      "name": "email_replacement", 
       "selectors": [
-        "a.publisher-link span.publisher-info", "div.sitepicker div.publisher span.site-name-wrapper span"
+        "[href^='mailto:']",
+        ".email",
+        "[data-email]"
       ],
-      "type": "static_replacement",
+      "type": "static_replace",
       "options": {
-        "caseSensitive": false,
-        "captureBeforeReplace": {
-            "customerName": "//a[@class='publisher-link']//span[contains(@class, 'publisher-info')]/text()"
-          },
         "replacements": {
-          "company_names": [
-            "Customer Name"
-          ]
+          ".*@.*": "{randomEmail}"
         }
       }
     },
     {
-      "name": "partial_replacement_tooltip",
+      "name": "image_blurring",
       "selectors": [
-        "#tooltip"
-      ],
-      "type": "dynamic_replacement",
-      "options": {
-        "caseSensitive": false,
-        "replacements": {
-          "{customerName}": "Customer Name",
-          "{customerDomain}": "customerdomain.com"
-        }
-      }
-    },
-    {
-      "name": "partial_replacement",
-      "selectors": [
-        "div.gsc-item-wrapper span", "div.post-metas a.post-row-tag-internal",
-        ".site-url", "span.gsc-label", "div.metas-listing div.title a",
-        "div.gsc-listing div.google-key-label", "div.overview-listing div.metas-listing a"
-      ],
-      "type": "dynamic_replacement",
-      "options": {
-        "caseSensitive": false,
-        "replacements": {
-          "{customerName}": "customer name",
-          "{customerDomain}": "customerdomain.com"
-        },
-        "splitReplacements": {
-          "{customerName}": "Customer Name"
-        },
-        "ignoreWords": [
-          "the", "and", "or", "inc", "corp", "llc", "ltd"
-        ]
-      }
-    },
-    {
-      "name": "url_with_spaces_replacement",
-      "selectors": [
-        "div.gsc-listing div.post-metas div.col div"
-      ],
-      "type": "dynamic_replacement",
-      "options": {
-        "caseSensitive": false,
-        "splitReplacements": {
-          "{customerName}": "customername DDD"
-        },
-        "ignoreWords": [
-          "the", "and", "or", "inc", "corp", "llc", "ltd"
-        ]
-      }
-    },
-    {
-      "name": "subdirectory_replacement",
-      "selectors": [
-        ".legacy-domain-class"
-      ],
-      "type": "replace_subdirectory",
-      "options": {
-        "caseSensitive": true,
-        "replacementValue": "customerdomain.com EEE"
-      }
-    },
-    {
-      "name": "article_thumbnails",
-      "selectors": [
-        "div.thumb img",
-        "img.hthumbnail"
+        ".thumbnail img",
+        ".article-image",
+        "img[src*='avatar']",
+        "img[src*='profile']"
       ],
       "type": "blur",
       "options": {
-        "blurAmount": "4px",
-        "fallbackImage": "assets/placeholder.jpg"
+        "blurAmount": "8px"
       }
     },
     {
-      "name": "profile_photos",
+      "name": "link_masking",
       "selectors": [
-        "img[src*='avatar']",
-        "img[src*='profile']",
-        "img[src*='user']",
-        "img.thumbnail",
-        ".avatar img",
-        ".profile-photo img",
-        ".user-photo img"
-      ],
-      "type": "replace_image",
-      "options": {
-        "replacementImage": "assets/placeholder.jpg",
-        "preserveDimensions": true
-      }
-    },
-    {
-      "name": "link_url_masking",
-      "selectors": [
-        "a[href]"
+        "a[href^='http']"
       ],
       "type": "mask_links",
       "options": {
-        "maskUrl": "https://dash.parsely.com",
-        "preserveFunction": true
-      }
-    },
-    {
-      "name": "custom_css_injection",
-      "type": "custom_css",
-      "options": {
-        "cssRules": [
-          {
-            "selector": "div.sitepicker div input.filter",
-            "properties": {
-              "color": "rgba(0, 0, 0, 0)"
-            }
-          }
-        ]
+        "maskUrl": "https://dash.parsely.com"
       }
     }
-  ],
-  "globalOptions": {
-    "enableOnLoad": true,
-    "observeMutations": true,
-    "mutationObserverOptions": {
-      "childList": true,
-      "subtree": true,
-      "attributes": true,
-      "attributeFilter": [
-        "src",
-        "alt",
-        "title"
-      ]
-    }
-  },
-  "matches": [
-    "https://*.parsely.com/*"
   ]
 }

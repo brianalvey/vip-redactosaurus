@@ -7,8 +7,8 @@ A Chrome extension that anonymizes specific content patterns on webpages **befor
 - **No Flash of Content**: Content is anonymized before the page loads
 - **Configurable Selectors**: Target content using CSS selectors, IDs, and XPath
 - **Multiple Transformation Types**:
-  - **Text Scrambling**: Preserves case, punctuation, and spaces
-  - **Static Replacement**: Replace names with preset alternatives
+  - **Text Scrambling**: Can preserve case, punctuation, vowels, and spaces
+  - **Static Replacement**: Replace strings with preset alternatives via JavaScript functions
   - **Image Blurring**: Blur sensitive images
   - **Image Replacement**: Swap images with placeholders
   - **Custom CSS Injection**: Apply arbitrary CSS rules with RGBA colors
@@ -41,25 +41,55 @@ The extension uses `content/config.json` to define what content to anonymize and
      "options": {
        "preserveCase": true,
        "preservePunctuation": true,
-       "preserveSpaces": true
+       "preserveSpaces": true,
+       "preserveEnds": true,
+       "preserveVowels": true
      }
    }
    ```
 
-2. **`static_replacement`**: Replaces text with preset alternatives
+2. **`static_replacement`**: Replaces all of the contents
    ```json
    {
-     "type": "static_replacement",
-     "options": {
-       "replacements": {
-         "first_names": ["Alex", "Sam", "Jordan"],
-         "last_names": ["Smith", "Johnson", "Williams"]
-       }
-     }
+     "name": "swap_nav_items",
+      "type": "replace_full",
+      "selectors": [
+        ".my-custom-class",
+        "#specific-id",
+        "[data-testid='sensitive-data']",
+        "img[src*='private']"
+      ],
+      "replacements": {
+        "contents": [
+          "Customer Name Goes Here"
+        ]
+      }
    }
    ```
 
-3. **`blur`**: Applies blur filter to images
+3. **`dynamic_replacement`**: Replaces some of the contents with strings or functions
+   ```json
+   {
+     "name": "swap_names_in_headings",
+      "type": "replace_partial",
+      "selectors": [
+        ".my-custom-class",
+        "#specific-id",
+        "[data-testid='sensitive-data']",
+        "img[src*='private']"
+      ],
+      "replacements": {
+        "{customerDomain}": [
+          "customerx.com"
+        ],
+        "{customerName}": [
+          "{functionRandomNames}"
+        ]
+      }
+   }
+   ```
+
+4. **`blur`**: Applies blur filter to images
    ```json
    {
      "type": "blur",
@@ -70,32 +100,13 @@ The extension uses `content/config.json` to define what content to anonymize and
    }
    ```
 
-4. **`replace_image`**: Swaps images with placeholders
+5. **`replace_image`**: Swaps images with placeholders
    ```json
    {
      "type": "replace_image",
      "options": {
        "replacementImage": "assets/placeholder.jpg",
        "preserveDimensions": true
-     }
-   }
-   ```
-
-5. **`custom_css`**: Inject arbitrary CSS rules into the document
-   ```json
-   {
-     "type": "custom_css",
-     "options": {
-       "cssRules": [
-         {
-           "selector": ".sensitive-element",
-           "properties": {
-             "color": "rgba(255, 0, 0, 0.8)",
-             "background-color": "rgba(0, 255, 0, 0.2)",
-             "border": "2px solid rgba(0, 0, 255, 0.6)"
-           }
-         }
-       ]
      }
    }
    ```
