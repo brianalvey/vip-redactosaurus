@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIP Redactosaurus Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .customer-name {
+      color: #007acc;
+      font-weight: bold;
+    }
+    .author-name {
+      color: #666;
+      font-style: italic;
+    }
+    .article-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0 10px 0;
+    }
+    .content {
+      margin: 15px 0;
+    }
+    .thumbnail {
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      margin: 10px;
+    }
+    .test-section {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+    .section-title {
+      background: #f5f5f5;
+      padding: 5px 10px;
+      margin: -15px -15px 15px -15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>VIP Redactosaurus Test Page</h1>
+  <p>This page contains various elements that should be anonymized by the extension.</p>
+  <p><strong>To test customer detection:</strong> Visit <code>https://dash.parsely.com/yahoo.vip.net/sections/</code> or modify your URL to match the pattern.</p>
+  
+  <div class="test-section">
+    <div class="section-title">Customer Names (should be replaced)</div>
+    <p class="customer-name">Acme Corporation</p>
+    <p class="site-name">TechStart Inc.</p>
+    <p class="publisher-name">Global Media Solutions</p>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Headlines (should be scrambled with preserved ends)</div>
+    <div class="title"><h1>Breaking News: Major Product Launch Announcement</h1></div>
+    <a class="post-title">Revolutionary Technology Changes Industry Standards</a>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Text Scrambling Comparison</div>
+    <p class="readable-text">This text uses preserveEnds=true so you can still read it easily.</p>
+    <p class="content">This text uses preserveEnds=false so it's completely scrambled and unreadable.</p>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Author Names (should be replaced with random generated names)</div>
+    <p class="author-name">John Smith</p>
+    <p class="byline">By Sarah Johnson, Technology Reporter</p>
+    <div data-author="Michael Davis">Article by Michael Davis</div>
+    <p class="writer-name">Emily Chen</p>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Company Names (should be replaced with generated companies)</div>
+    <p class="company-name">TechCorp Industries</p>
+    <p class="organization">Digital Media Solutions LLC</p>
+    <div class="corp-name">Global Analytics Group</div>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Email Addresses (should be replaced with generated emails)</div>
+    <p class="email">contact@company.com</p>
+    <a href="mailto:support@techcorp.com" class="contact-email">support@techcorp.com</a>
+    <p>Contact us at <span class="email">info@example.com</span> for more information.</p>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Images (should be blurred)</div>
+    <img src="https://picsum.photos/200/150?random=1" alt="Sample image 1" class="thumbnail">
+    <img src="https://picsum.photos/200/150?random=2" alt="Sample image 2" class="article-image">
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Content Text (should be scrambled and replace customer data)</div>
+    <div class="content">
+      <p>This is a sample article content that contains sensitive information about Yahoo, Inc. and their domain yahoo.com that should be anonymized. The content includes company names, personal details, and other confidential data.</p>
+      <p class="description">Our platform helps Yahoo, Inc. streamline their operations and improve customer satisfaction through innovative solutions. Visit yahoo.com for more information.</p>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Partial Replacement Examples (HTML Preservation Test)</div>
+    <div class="article-content">
+      <p>Welcome to <strong>NY Post</strong>! Please visit our website at <a href="https://nypost.com">nypost.com</a> for more information about our services.</p>
+      <p>If you need help, contact <em>NY Post</em> support or visit <code>nypost.com</code> for documentation.</p>
+      <p class="summary">This text contains customer data like <span class="highlight">nypost.com</span> and <strong>NY Post</strong> that should be replaced with anonymized values while preserving all HTML tags.</p>
+      <div class="post-metas">
+        <a href="https://nypost.com/author/john-doe"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z'/%3E%3C/svg%3E" alt="Author"> NY Post Reporter</a>
+        <span>Published on <time datetime="2024-01-01">nypost.com</time></span>
+        <div class="nested">
+          <span>More content with <strong>NY Post</strong> mentions and <em>nypost.com</em> references</span>
+        </div>
+      </div>
+      
+      <!-- Test element for #tooltip selector -->
+      <div id="tooltip" style="background: lightyellow; padding: 10px; border: 1px solid #ccc; margin-top: 10px;">
+        This is a tooltip element with ID "tooltip". It contains NY Post and nypost.com which should be replaced by the partialReplace transformation.
+      </div>
+      
+      <!-- Button to test content change detection -->
+      <button onclick="changeTooltipContent()" style="margin-top: 10px; padding: 5px 10px;">
+        Change Tooltip Content
+      </button>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">URL and Link Replacement (using regex)</div>
+    <div class="text-content">
+      <p>Visit https://www.example.com for more info or check out www.sample-site.com</p>
+      <a href="https://company.com/docs" class="link-text">https://company.com/docs</a>
+      <p>Email us at contact@company.com or admin@example.org</p>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">CSS Selector Test</div>
+    <p>Testing various CSS selectors to ensure they all work:</p>
+    
+    <!-- ID selector test -->
+    <div id="test-id">ID selector (#test-id): This should match if ID selectors work. Content: NY Post</div>
+    
+    <!-- Class selector test -->
+    <div class="test-class">Class selector (.test-class): This should match if class selectors work. Content: nypost.com</div>
+    
+    <!-- Element selector test -->
+    <span>Element selector (span): This should match if element selectors work. Content: NY Post</span>
+    
+    <!-- Attribute selector test -->
+    <div data-test="tooltip">Attribute selector ([data-test="tooltip"]): Content: nypost.com</div>
+    
+    <!-- Complex selector test -->
+    <div class="complex">
+      <p class="nested-test">Complex selector (.complex p.nested-test): Content: NY Post and nypost.com</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="section-title">Dynamic Content (will be added after page load)</div>
+    <div id="dynamic-content">
+      <!-- Content will be added dynamically -->
+    </div>
+  </div>
+  
+  <script>
+    // Function to test content change detection
+    let tooltipCounter = 1;
+    function changeTooltipContent() {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.textContent = `Updated tooltip content #${tooltipCounter++}. This now contains NY Post and nypost.com and should be processed again by the extension.`;
+      console.log('Changed tooltip content - extension should detect this change and reprocess');
+    }
+
+    // Add dynamic content after page load to test MutationObserver
+    setTimeout(() => {
+      const dynamicDiv = document.getElementById('dynamic-content');
+      dynamicDiv.innerHTML = `
+        <h3 class="article-title">Dynamically Added Headline</h3>
+        <p class="author-name">Dynamic Author Name</p>
+        <p class="customer-name">Dynamic Customer Corp</p>
+        <div class="content">This content was added dynamically and should also be processed by the extension.</div>
+        <div id="dynamic-tooltip">Dynamic tooltip with NY Post and nypost.com content</div>
+      `;
+    }, 2000);
+    
+    // Add more dynamic content periodically to test continuous processing
+    let counter = 1;
+    setInterval(() => {
+      const dynamicDiv = document.getElementById('dynamic-content');
+      
+      // Add various types of dynamic content
+      const contentTypes = [
+        { tag: 'p', class: 'content', text: `Dynamic content #${counter} - This should be scrambled!` },
+        { tag: 'div', id: `dynamic-${counter}`, text: `Dynamic element with NY Post and nypost.com #${counter}` },
+        { tag: 'span', class: 'test-class', text: `Dynamic span with nypost.com content #${counter}` }
+      ];
+      
+      const contentType = contentTypes[counter % contentTypes.length];
+      const newElement = document.createElement(contentType.tag);
+      
+      if (contentType.class) newElement.className = contentType.class;
+      if (contentType.id) newElement.id = contentType.id;
+      
+      newElement.textContent = contentType.text;
+      dynamicDiv.appendChild(newElement);
+      
+      console.log(`Added dynamic content #${counter}:`, newElement);
+      
+      counter++;
+      
+      // Clean up old dynamic content to prevent infinite growth
+      if (counter > 10) {
+        const oldElements = dynamicDiv.querySelectorAll('[id^="dynamic-"]');
+        if (oldElements.length > 5) {
+          oldElements[0].remove();
+        }
+      }
+    }, 3000);
+  </script>
+</body>
+</html>

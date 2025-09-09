@@ -2,7 +2,11 @@
 
 ## 🧩 Project Overview
 
-Build a **Chrome Extension** that anonymizes specific content on a webpage **before it renders**, enabling safe demos of our product dashboards without revealing private customer data to other customers and prospects. As new content and markup is loaded, either by navigating to a new screen within the SPA, by interacting with elements or by loading a hover panel, the plugin will also run transformations in that new markup.
+Build a **Chrome Extension** that anonymizes specific content on a webpage **before it renders**, enabling safe demos of our product dashboards without revealing private customer data to other customers and prospects. As new content and markup is loaded, either by navigating to a new screen within the SPA, by interacting with elements or by loading a hover panel, the plugin will also run transformations in that new markup. Run these transformations every 100ms and make that timer value configurable.
+
+The two most important items to hide are the customer name and customer domain. Depending on the URL pattern of the webpage, we might know the customer ID. If so, we can map that to a list of known customer names and domains to be replaced. If not, we will have to grab those two values from the webpage itself and use those values to hide customer data throughout the page.
+
+Each time an element has its contents transformed, we should store the original and new data in HTML attributes so we can detect which elements do or don't change over time and not repeat anonymization on those elements.
 
 Anonymized content includes:
 - Headlines
@@ -14,7 +18,7 @@ Anonymized content includes:
 Anonymization transformations:
 - Scrambling text where spaces, punctuation and capitlization are preserved
 - Static text replacement from preset arrays for example replacing all author first names that start with a "J" with "Fred" and all author last names that start with "S" with "Jones".
-- Blurring images or replacing images with placeholders, while retaining the original dimensions and styling
+- Blurring images or replacing images with either online or local placeholders, while retaining the original dimensions and styling
 
 ## ⚙️ Technical Requirements
 
@@ -32,8 +36,7 @@ chrome-anonymizer/
 ├── manifest.json
 ├── content/
 │ ├── redactosaurus.js # Main logic
-│ ├── config.json # List of selectors + transformation instructions
-│ └── inject.css # List of selectors + transformation instructions
+│ └── config.json # List of selectors + transformation instructions
 ├── background/
 │ └── background.js # Service worker
 ├── popup/

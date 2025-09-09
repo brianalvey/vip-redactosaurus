@@ -1,81 +1,222 @@
 {
+  "settings": {
+    "processInterval": 100,
+    "maxRetries": 0,
+    "debug": true
+  },
+  "customerMapping": {
+    "nypost.com": {
+      "customerName": "NY Post",
+      "customerDomain": "nypost.com"
+    },
+    "cnn.vip.net": {
+      "customerName": "CNN Digital",
+      "customerDomain": "cnn.com"
+    },
+    "theonion.com": {
+      "customerName": "The Onion",
+      "customerDomain": "theonion.com"
+    },
+    "bbc.vip.net": {
+      "customerName": "BBC News",
+      "customerDomain": "bbc.co.uk"
+    },
+    "techcrunch.vip.net": {
+      "customerName": "TechCrunch Media",
+      "customerDomain": "techcrunch.com"
+    },
+    "example.demo.net": {
+      "customerName": "Example Corporation",
+      "customerDomain": "example.com"
+    }
+  },
+  "urlPatterns": {
+    "parsely": {
+      "pattern": "https://dash\\.parsely\\.com/([^/]+)/.*",
+      "customerIdGroup": 1
+    },
+    "app": {
+      "pattern": "https://app\\.parsely\\.com/([^/]+)/.*",
+      "customerIdGroup": 1
+    }
+  },
   "transformations": [
     {
-      "name": "headline_scrambling",
+      "name": "customer_names",
+      "type": "customerReplace", 
       "selectors": [
-        "a.post-title", "div.title h1"
+        ".customer-name",
+        ".site-name", 
+        ".publisher-name",
+        "[data-customer-name]",
+        ".site-title",
+        ".brand-name"
       ],
+      "options": {
+        "replaceWith": "customerName",
+        "fallback": "Customer X"
+      }
+    },
+    {
+      "name": "customer_domains",
+      "type": "customerReplace",
+      "selectors": [
+        ".domain",
+        ".website",
+        "[data-domain]",
+        ".site-url"
+      ],
+      "options": {
+        "replaceWith": "customerDomain", 
+        "fallback": "customerx.com"
+      }
+    },
+    {
+      "name": "headlines_scramble",
       "type": "scramble",
+      "selectors": [
+        "a.post-title",
+        "div.title h1"
+      ],
       "options": {
         "preserveCase": true,
         "preservePunctuation": true,
         "preserveSpaces": true,
-        "preserveEnds": true,
-        "preservePosition": true,
-        "preserveVowels": true
+        "preserveLength": true,
+        "preserveEnds": true
       }
     },
     {
-      "name": "author_replacement",
+      "name": "author_names",
+      "type": "functionReplace",
       "selectors": [
         "p.author-name", "p.byline", "div.post-metas div.author a", "div.byline span.byline-meta span a"
       ],
-      "type": "static_replace",
       "options": {
-        "replacements": {
-          "jsFunction": "randomAuthorName"
+        "functionName": "generateRandomAuthorName",
+        "functionArgs": {
+          "firstNames": [
+            "Aisha", "Benjamin", "Carmen", "Dmitri", "Elena", "Finn", "Grace", "Hassan", "Isabella", "Jin", "Kenji", "Lucia", "Miguel", "Nora", "Omar", "Priya", "Quinn", "Raj", "Sofia", "Tomoko", "Ulrich", "Veronica", "Wei", "Ximena", "Yuki", "Zara", "Adrian", "Beatrice", "Carlos", "Diana", "Ethan", "Fatima", "Gabriel", "Hana", "Ivan", "Jasmine", "Klaus", "Leila", "Marco", "Natasha", "Oscar", "Petra", "Quincy", "Rosa", "Sebastian", "Tara", "Uri", "Victoria", "Wolfgang", "Xander", "Yvette", "Zachary"
+          ],
+          "lastNames": [
+            "Anderson", "Blackwood", "Chen", "Delacroix", "Eriksson", "Fernandez", "Gonzalez", "Hoffman", "Ivanov", "Jackson", "Kim", "Lopez", "Murphy", "Nakamura", "O'Brien", "Patel", "Quinn", "Rodriguez", "Singh", "Thompson", "Ueda", "Volkov", "Williams", "Xu", "Yamamoto", "Ziegler", "Abramovich", "Brennan", "Castillo", "Davies", "Engström", "Fischer", "García", "Hashimoto", "Ibrahim", "Jensen", "Kowalski", "Laurent", "Martínez", "Nielsen", "Okafor", "Petrov", "Qureshi", "Rossi", "Swanson", "Taylor", "Underwood", "Varga", "Walsh", "Xiang", "Yoshida", "Zimmerman"
+          ]
         }
       }
     },
     {
-      "name": "customer_name_replacement",
+      "name": "company_names",
+      "type": "functionReplace",
       "selectors": [
-        ".customer-name",
-        ".site-name",
-        ".publisher-name"
+        ".company-name",
+        ".organization",
+        ".corp-name"
       ],
-      "type": "static_replace",
       "options": {
-        "replacements": {
-          "jsFunction": "randomCompanyName"
+        "functionName": "generateRandomCompany",
+        "functionArgs": {
+          "prefixes": ["Global", "Dynamic", "Prime", "Elite", "Advanced", "Strategic"],
+          "suffixes": ["Corp", "Inc", "LLC", "Solutions", "Industries", "Group"],
+          "types": ["Media", "Tech", "Digital", "Systems", "Networks", "Analytics"]
         }
       }
     },
     {
-      "name": "email_replacement", 
+      "name": "email_addresses",
+      "type": "functionReplace",
       "selectors": [
-        "[href^='mailto:']",
         ".email",
-        "[data-email]"
+        "[href^='mailto:']",
+        ".contact-email"
       ],
-      "type": "static_replace",
       "options": {
-        "replacements": {
-          ".*@.*": "{randomEmail}"
+        "functionName": "generateRandomEmail",
+        "functionArgs": {
+          "usernames": ["contact", "info", "hello", "support", "team", "admin", "sales"],
+          "domains": ["example.com", "demo-site.com", "sample.org", "test.net", "placeholder.co"]
         }
       }
     },
     {
-      "name": "image_blurring",
-      "selectors": [
-        ".thumbnail img",
-        ".article-image",
-        "img[src*='avatar']",
-        "img[src*='profile']"
-      ],
+      "name": "article_images",
       "type": "blur",
+      "selectors": [
+        "div.thumb img",
+        "img.thumbnail"
+      ],
       "options": {
-        "blurAmount": "8px"
+        "blurAmount": "3px"
       }
     },
     {
-      "name": "link_masking",
+      "name": "sensitive_content",
+      "type": "sensitiveText",
       "selectors": [
-        "a[href^='http']"
+        ".content",
+        ".description",
+        ".excerpt",
+        ".article-body"
       ],
-      "type": "mask_links",
       "options": {
-        "maskUrl": "https://dash.parsely.com"
+        "scrambleAfterReplace": true,
+        "preserveCase": true,
+        "preservePunctuation": true,
+        "preserveSpaces": true,
+        "preserveLength": true,
+        "preserveEnds": false,
+        "skipElementsContaining": ["a", "button", "input", "select", "textarea"]
+      }
+    },
+    {
+      "name": "customer_data_replacement",
+      "type": "partialReplace",
+      "selectors": [
+        "div.post-metas a",
+        "#tooltip",
+        "a.publisher-link span.publisher-info",
+        "div.sitepicker div.publisher span.site-name-wrapper span",
+        "div.sitepicker div.toggle-content div span",
+        "span.site-name-wrapper span.highlighted"
+      ],
+      "options": {
+        "replacements": {
+          "nypost.com": "customerx.com",
+          "NY Post": "Customer X",
+          "{customerDomain}": "customerx.com",
+          "{customerName}": "Customer X"
+        },
+        "caseSensitive": false,
+        "useRegex": false,
+        "preserveHtml": true
+      }
+    },
+    {
+      "name": "readable_scramble",
+      "type": "scramble",
+      "selectors": [
+        ".readable-text",
+        ".partial-scramble"
+      ],
+      "options": {
+        "preserveCase": true,
+        "preservePunctuation": true,
+        "preserveSpaces": true,
+        "preserveLength": true,
+        "preserveEnds": true
+      }
+    },
+    {
+      "name": "nav_pulldown_scramble",
+      "type": "scramble",
+      "selectors": [
+        "div.apikey-group a span span"
+      ],
+      "options": {
+        "preserveCase": true,
+        "preservePunctuation": true,
+        "preserveSpaces": true,
+        "preserveLength": true,
+        "preserveEnds": false
       }
     }
   ]

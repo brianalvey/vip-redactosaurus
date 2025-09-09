@@ -11,8 +11,10 @@
     {
       "matches": [
         "https://dash.parsely.com/*",
-        "https://app.parsely.com/*",
-        "https://*.parsely.com/*"
+        "https://app.parsely.com/*", 
+        "https://*.parsely.com/*",
+        "http://localhost:*/*",
+        "https://example.com/*"
       ],
       "js": ["content/redactosaurus.js"],
       "run_at": "document_start",
@@ -24,21 +26,26 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "VIP Tour Anonymizer"
+    "default_title": "VIP Redactosaurus - Toggle Anonymization"
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "content/config.json"],
+      "resources": [
+        "assets/*", 
+        "content/config.json"
+      ],
       "matches": [
         "https://dash.parsely.com/*",
         "https://app.parsely.com/*",
-        "https://*.parsely.com/*"
+        "https://*.parsely.com/*",
+        "http://localhost:*/*",
+        "https://example.com/*"
       ]
     }
   ],
   "icons": {
     "16": "assets/icon16.png",
-    "48": "assets/icon48.png",
+    "48": "assets/icon48.png", 
     "128": "assets/icon128.png"
   }
 } 
