@@ -2,42 +2,61 @@
   "settings": {
     "processInterval": 100,
     "maxRetries": 0,
-    "debug": true
-  },
-  "customerMapping": {
-    "nypost.com": {
-      "customerName": "NY Post",
-      "customerDomain": "nypost.com"
-    },
-    "cnn.vip.net": {
-      "customerName": "CNN Digital",
-      "customerDomain": "cnn.com"
-    },
-    "theonion.com": {
-      "customerName": "The Onion",
-      "customerDomain": "theonion.com"
-    },
-    "bbc.vip.net": {
-      "customerName": "BBC News",
-      "customerDomain": "bbc.co.uk"
-    },
-    "techcrunch.vip.net": {
-      "customerName": "TechCrunch Media",
-      "customerDomain": "techcrunch.com"
-    },
-    "example.demo.net": {
-      "customerName": "Example Corporation",
-      "customerDomain": "example.com"
-    }
+    "debug": true,
+    "showDemoIndicator": false
   },
   "urlPatterns": {
     "parsely": {
       "pattern": "https://dash\\.parsely\\.com/([^/]+)/.*",
       "customerIdGroup": 1
     },
-    "app": {
-      "pattern": "https://app\\.parsely\\.com/([^/]+)/.*",
+    "parsely_direct": {
+      "pattern": "https://([^/]+\\.[^/]+)/.*",
       "customerIdGroup": 1
+    },
+    "hosting-dashboard": {
+      "pattern": "dashboard\\.wpvip\\.com/apps/([^/]+)/.*",
+      "customerIdGroup": 2
+    }
+  },
+  "customerMapping": {
+    "1": {
+      "name": "Parsely Analytics",
+      "customers": {
+        "nypost.com": {
+          "customerName": "NY Post",
+          "customerDomain": "nypost.com"
+        },
+        "theonion.com": {
+          "customerName": "The Onion",
+          "customerDomain": "theonion.com"
+        },
+        "yahoo.vip.net": {
+          "customerName": "Yahoo Inc",
+          "customerDomain": "yahoo.com"
+        },
+        "cnn.vip.net": {
+          "customerName": "CNN Digital",
+          "customerDomain": "cnn.com"
+        }
+      }
+    },
+    "2": {
+      "name": "VIP Hosting Platform",
+      "customers": {
+        "nytimes": {
+          "customerName": "The New York Times",
+          "customerDomain": "nytimes.com"
+        },
+        "washpost": {
+          "customerName": "The Washington Post",
+          "customerDomain": "washingtonpost.com"
+        },
+        "techcrunch": {
+          "customerName": "TechCrunch Media",
+          "customerDomain": "techcrunch.com"
+        }
+      }
     }
   },
   "transformations": [
@@ -76,7 +95,8 @@
       "type": "scramble",
       "selectors": [
         "a.post-title",
-        "div.title h1"
+        "div.title h1",
+        "div.google-key-label"
       ],
       "options": {
         "preserveCase": true,
@@ -145,7 +165,7 @@
         "img.thumbnail"
       ],
       "options": {
-        "blurAmount": "3px"
+        "blurAmount": "2px"
       }
     },
     {
@@ -219,5 +239,50 @@
         "preserveEnds": false
       }
     }
-  ]
+  ],
+  "globalCSS": {
+    "enabled": true,
+    "rules": [
+      {
+        "selector": "div.navigation nav a.current",
+        "properties": {
+          "filter": "blur(5px) !important"
+        }
+      },
+      {
+        "selector": "div.navigation div.--current span PAUSE",
+        "properties": {
+          "color": "orange !important"
+        }
+      },
+      {
+        "selector": "div.sitepicker div input.filter",
+        "properties": {
+          "color": "rgba(255, 0, 0, 0) !important"
+        }
+      },
+      {
+        "selector": "div.sitepicker div input.filter::after",
+        "properties": {
+          "content": "'[DEMO FILTER]'",
+          "position": "absolute",
+          "background": "red",
+          "color": "white",
+          "padding": "2px 4px",
+          "font-size": "10px",
+          "z-index": "1000"
+        }
+      },
+      {
+        "selector": "h2.subtitle::before PAUSE",
+        "properties": {
+          "content": "'🏢 '",
+          "color": "blue"
+        }
+      }
+    ],
+    "files": [
+      "assets/global.css"
+    ]
+  }
 }

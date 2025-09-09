@@ -40,7 +40,17 @@
     log('=== CUSTOMER DETECTION START ===');
     log('Current URL:', currentUrl);
     log('Available URL patterns:', Object.keys(config.urlPatterns));
-    log('Available customer mappings:', Object.keys(config.customerMapping || {}));
+    const mappingsSummary = {};
+    if (config.customerMapping) {
+      Object.keys(config.customerMapping).forEach(groupId => {
+        const group = config.customerMapping[groupId];
+        mappingsSummary[groupId] = {
+          name: group.name,
+          customerCount: Object.keys(group.customers || {}).length
+        };
+      });
+    }
+    log('Available customer mappings:', mappingsSummary);
 
     // Try each URL pattern
     for (const [patternName, patternConfig] of Object.entries(config.urlPatterns)) {
@@ -53,32 +63,48 @@
         
         if (match && match[patternConfig.customerIdGroup]) {
           const customerId = match[patternConfig.customerIdGroup];
+          const customerGroup = patternConfig.customerIdGroup.toString();
           log(`✅ Customer ID detected using pattern '${patternName}':`, customerId);
+          log(`Looking in customer group: ${customerGroup}`);
           
-          // Look up customer details
-          const customerDetails = config.customerMapping?.[customerId];
-          log(`Customer mapping lookup for '${customerId}':`, customerDetails);
+          // Look up customer details in the appropriate group
+          const groupMapping = config.customerMapping?.[customerGroup];
+          log(`Customer group mapping for '${customerGroup}':`, groupMapping);
           
-          if (customerDetails) {
-            const customer = {
-              id: customerId,
-              name: customerDetails.customerName,
-              domain: customerDetails.customerDomain
-            };
-            log('✅ Known customer detected:', customer);
-            log('=== CUSTOMER DETECTION SUCCESS ===');
-            return customer;
+          if (groupMapping && groupMapping.customers) {
+            const customerDetails = groupMapping.customers[customerId];
+            log(`Customer mapping lookup for '${customerId}' in group '${customerGroup}':`, customerDetails);
+            
+            if (customerDetails) {
+              const customer = {
+                id: customerId,
+                name: customerDetails.customerName,
+                domain: customerDetails.customerDomain,
+                group: customerGroup,
+                groupName: groupMapping.name,
+                pattern: patternName
+              };
+              log('✅ Known customer detected:', customer);
+              log('=== CUSTOMER DETECTION SUCCESS ===');
+              return customer;
+            } else {
+              log(`⚠️ Customer ID '${customerId}' not found in group '${customerGroup}' customer mapping`);
+            }
           } else {
-            log(`⚠️ Customer ID '${customerId}' not found in customer mapping`);
-            // Return basic customer info even if not in mapping
-            const customer = {
-              id: customerId,
-              name: null,
-              domain: null
-            };
-            log('=== CUSTOMER DETECTION PARTIAL ===');
-            return customer;
+            log(`⚠️ Customer group '${customerGroup}' not found in mapping`);
           }
+          
+          // Return basic customer info even if not in mapping
+          const customer = {
+            id: customerId,
+            name: null,
+            domain: null,
+            group: customerGroup,
+            groupName: groupMapping?.name || `Group ${customerGroup}`,
+            pattern: patternName
+          };
+          log('=== CUSTOMER DETECTION PARTIAL ===');
+          return customer;
         } else {
           log(`❌ Pattern '${patternName}' did not match`);
         }
@@ -475,9 +501,30 @@
   // === ELEMENT PROCESSING ===
 
   function processElement(element, transformation) {
-    if (!element || !transformation) return;
-    
     const { type, options = {}, name } = transformation;
+    
+    // CSS injection doesn't need an element and should only run once
+    if (type === 'injectCSS') {
+      // Check if this CSS transformation has already been processed globally
+      if (hasBeenProcessed(document.documentElement, name)) {
+        return; // Skip already processed
+      }
+      
+      try {
+        log(`Processing "${name}" (${type}) - global CSS injection`);
+        processInjectCSS(options, name);
+        
+        // Mark as processed on document element to prevent re-injection
+        markAsProcessed(document.documentElement, name);
+        log(`✅ Completed "${name}" (${type}) - CSS injected`);
+      } catch (err) {
+        error(`Error processing CSS transformation "${name}":`, err);
+      }
+      return;
+    }
+    
+    // All other transformations require an element
+    if (!element || !transformation) return;
     
     // Check if this specific transformation has already been applied to this element
     if (hasBeenProcessed(element, name)) {
@@ -555,7 +602,25 @@
 
   function processScramble(element, options) {
     if (!element.textContent.trim()) return;
-    element.textContent = scrambleText(element.textContent, options);
+    scrambleDirectTextNodes(element, options);
+  }
+
+  function scrambleDirectTextNodes(element, options) {
+    // Get all direct child nodes (including text nodes)
+    const childNodes = Array.from(element.childNodes);
+    
+    childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        // This is a direct text node - scramble it
+        const originalText = node.textContent;
+        if (originalText.trim()) {
+          node.textContent = scrambleText(originalText, options);
+          log(`Scrambled direct text node: "${originalText}" → "${node.textContent}"`);
+        }
+      }
+      // Leave element nodes (HTML tags) completely untouched
+      // This preserves <span>, <strong>, <em>, <a>, etc. and their content
+    });
   }
 
   function processStaticReplace(element, options) {
@@ -762,6 +827,102 @@
     blurImage(element, blurAmount);
   }
 
+  function processInjectCSS(options, transformationName) {
+    const { cssRules = [], cssFiles = [] } = options;
+    
+    log(`Processing CSS injection for "${transformationName}"`);
+    
+    // Inject CSS rules from config
+    if (cssRules.length > 0) {
+      injectCSSRules(cssRules, `redactosaurus-${transformationName}`);
+    }
+    
+    // Load and inject external CSS files
+    if (cssFiles.length > 0) {
+      loadAndInjectCSSFiles(cssFiles, transformationName);
+    }
+  }
+
+  function injectCSSRules(cssRules, styleId) {
+    // Check if style already exists
+    let styleElement = document.getElementById(styleId);
+    if (styleElement) {
+      log(`CSS already injected for ${styleId}, skipping`);
+      return;
+    }
+
+    // Create CSS text from rules
+    let cssText = '';
+    cssRules.forEach(rule => {
+      if (rule.selector && rule.properties) {
+        cssText += `${rule.selector} {\n`;
+        Object.entries(rule.properties).forEach(([property, value]) => {
+          // Ensure !important is added if not present for critical styles
+          const importantValue = value.includes('!important') ? value : `${value}`;
+          cssText += `  ${property}: ${importantValue};\n`;
+        });
+        cssText += '}\n\n';
+      }
+    });
+
+    if (cssText) {
+      // Create and inject style element
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      styleElement.setAttribute('data-redactosaurus', 'true');
+      styleElement.textContent = cssText;
+      
+      // Insert into head as early as possible
+      if (document.head) {
+        document.head.appendChild(styleElement);
+      } else {
+        document.documentElement.appendChild(styleElement);
+      }
+      
+      log(`Injected CSS rules for ${styleId}:`, cssRules.length, 'rules');
+    }
+  }
+
+  async function loadAndInjectCSSFiles(cssFiles, transformationName) {
+    for (const cssFile of cssFiles) {
+      try {
+        log(`Loading CSS file: ${cssFile}`);
+        const cssUrl = chrome.runtime.getURL(cssFile);
+        const response = await fetch(cssUrl);
+        
+        if (!response.ok) {
+          error(`Failed to load CSS file ${cssFile}: ${response.status} ${response.statusText}`);
+          continue;
+        }
+        
+        const cssContent = await response.text();
+        
+        // Create style element for this file
+        const styleId = `redactosaurus-${transformationName}-${cssFile.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        let styleElement = document.getElementById(styleId);
+        
+        if (!styleElement) {
+          styleElement = document.createElement('style');
+          styleElement.id = styleId;
+          styleElement.setAttribute('data-redactosaurus', 'true');
+          styleElement.setAttribute('data-css-file', cssFile);
+          styleElement.textContent = cssContent;
+          
+          if (document.head) {
+            document.head.appendChild(styleElement);
+          } else {
+            document.documentElement.appendChild(styleElement);
+          }
+          
+          log(`Injected CSS file: ${cssFile}`);
+        }
+        
+      } catch (err) {
+        error(`Error loading CSS file ${cssFile}:`, err);
+      }
+    }
+  }
+
   function processSensitiveText(element, options) {
     if (!element.textContent.trim()) return;
 
@@ -864,6 +1025,72 @@
     if (hideStyle) {
       hideStyle.remove();
       log('Content revealed');
+    }
+  }
+
+  function injectGlobalCSS() {
+    if (!config || !config.globalCSS || !config.globalCSS.enabled) {
+      return;
+    }
+
+    log('Injecting global CSS...');
+
+    // Inject global CSS rules
+    if (config.globalCSS.rules && config.globalCSS.rules.length > 0) {
+      injectCSSRules(config.globalCSS.rules, 'redactosaurus-global-css');
+    }
+
+    // Load global CSS files
+    if (config.globalCSS.files && config.globalCSS.files.length > 0) {
+      loadAndInjectCSSFiles(config.globalCSS.files, 'global');
+    }
+
+    // Add demo mode indicator
+    showDemoModeIndicator();
+  }
+
+  function showDemoModeIndicator() {
+    // Check if demo indicator is enabled in config
+    if (!config?.settings?.showDemoIndicator) {
+      return;
+    }
+
+    // Check if indicator already exists
+    if (document.getElementById('redactosaurus-demo-indicator')) {
+      return;
+    }
+
+    // Create demo mode indicator element
+    const indicator = document.createElement('div');
+    indicator.id = 'redactosaurus-demo-indicator';
+    indicator.className = 'redactosaurus-demo-mode';
+    indicator.textContent = '🦕 DEMO MODE';
+    indicator.title = 'VIP Redactosaurus is actively anonymizing content on this page';
+
+    // Add to page as early as possible
+    if (document.body) {
+      document.body.appendChild(indicator);
+    } else if (document.documentElement) {
+      document.documentElement.appendChild(indicator);
+    } else {
+      // If neither body nor documentElement exist yet, wait a bit
+      setTimeout(() => {
+        if (document.body) {
+          document.body.appendChild(indicator);
+        } else if (document.documentElement) {
+          document.documentElement.appendChild(indicator);
+        }
+      }, 100);
+    }
+
+    log('Demo mode indicator shown');
+  }
+
+  function hideDemoModeIndicator() {
+    const indicator = document.getElementById('redactosaurus-demo-indicator');
+    if (indicator) {
+      indicator.remove();
+      log('Demo mode indicator hidden');
     }
   }
 
@@ -1092,6 +1319,9 @@
       // Phase 1: Hide content immediately
       hideContentImmediately();
 
+      // Phase 1.5: Inject global CSS immediately
+      injectGlobalCSS();
+
       // Phase 2: Wait for DOM to be ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', continueInitialization);
@@ -1169,6 +1399,7 @@
         } else {
           stopContinuousProcessing();
           revealAnonymizedContent();
+          hideDemoModeIndicator();
           // Reset processed elements to allow re-processing when re-enabled
           resetProcessedElements();
         }

@@ -1,0 +1,55 @@
+/* VIP Redactosaurus - Global CSS */
+/* These styles are applied globally as soon as the extension loads */
+
+/* Global sensitive content blurring */
+.global-sensitive-image {
+  filter: blur(5px) !important;
+  transition: filter 0.3s ease !important;
+}
+
+/* Style for demo mode indicator */
+.redactosaurus-demo-mode {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  background: rgba(255, 0, 0, 0.7) !important;
+  color: white !important;
+  padding: 5px 10px !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  z-index: 10000 !important;
+  pointer-events: none !important;
+  border: 1px solid rgba(255, 0, 0, 1.0) !important;
+}
+
+/* Hide specific third-party widgets that might leak info */
+.intercom-widget,
+.zendesk-widget,
+.drift-widget,
+.helpscout-widget {
+  display: none !important;
+}
+
+/* Add tooltips using CSS only */
+.tooltip-demo::after {
+  content: attr(data-tooltip) " (This is demo content)";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: black;
+  color: white;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.tooltip-demo:hover::after {
+  opacity: 1;
+}
