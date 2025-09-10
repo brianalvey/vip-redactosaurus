@@ -96,7 +96,8 @@
       "selectors": [
         "a.post-title",
         "div.title h1",
-        "div.google-key-label"
+        "div.google-key-label",
+        "div.metas-listing div.title a[href*='/campaigns/id/']"
       ],
       "options": {
         "preserveCase": true,
@@ -110,7 +111,8 @@
       "name": "author_names",
       "type": "functionReplace",
       "selectors": [
-        "p.author-name", "p.byline", "div.post-metas div.author a", "div.byline span.byline-meta span a"
+        "p.author-name", "p.byline", "div.post-metas div.author a", "div.byline span.byline-meta span a",
+        "div.metas-listing div.title a[href*='/authors/']"
       ],
       "options": {
         "functionName": "generateRandomAuthorName",
@@ -169,25 +171,6 @@
       }
     },
     {
-      "name": "sensitive_content",
-      "type": "sensitiveText",
-      "selectors": [
-        ".content",
-        ".description",
-        ".excerpt",
-        ".article-body"
-      ],
-      "options": {
-        "scrambleAfterReplace": true,
-        "preserveCase": true,
-        "preservePunctuation": true,
-        "preserveSpaces": true,
-        "preserveLength": true,
-        "preserveEnds": false,
-        "skipElementsContaining": ["a", "button", "input", "select", "textarea"]
-      }
-    },
-    {
       "name": "customer_data_replacement",
       "type": "partialReplace",
       "selectors": [
@@ -196,7 +179,8 @@
         "a.publisher-link span.publisher-info",
         "div.sitepicker div.publisher span.site-name-wrapper span",
         "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted"
+        "span.site-name-wrapper span.highlighted",
+        "div.metas-listing div.title a[href*='/referrers/internal/']"
       ],
       "options": {
         "replacements": {
@@ -246,7 +230,7 @@
       {
         "selector": "div.navigation nav a.current",
         "properties": {
-          "filter": "blur(5px) !important"
+          "filter": "blur(0px) !important"
         }
       },
       {
@@ -259,18 +243,6 @@
         "selector": "div.sitepicker div input.filter",
         "properties": {
           "color": "rgba(255, 0, 0, 0) !important"
-        }
-      },
-      {
-        "selector": "div.sitepicker div input.filter::after",
-        "properties": {
-          "content": "'[DEMO FILTER]'",
-          "position": "absolute",
-          "background": "red",
-          "color": "white",
-          "padding": "2px 4px",
-          "font-size": "10px",
-          "z-index": "1000"
         }
       },
       {
