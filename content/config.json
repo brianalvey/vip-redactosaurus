@@ -2,7 +2,7 @@
   "settings": {
     "processInterval": 100,
     "maxRetries": 0,
-    "debug": true,
+    "debug": false,
     "showDemoIndicator": false
   },
   "urlPatterns": {
