@@ -66,18 +66,81 @@
     <p class="site-name">TechStart Inc.</p>
     <p class="publisher-name">Global Media Solutions</p>
   </div>
-  
+
   <div class="test-section">
-    <div class="section-title">Headlines (should be scrambled with preserved ends)</div>
-    <div class="title"><h1>Breaking News: Major Product Launch Announcement</h1></div>
-    <a class="post-title">Revolutionary Technology Changes Industry Standards</a>
-    <div class="google-key-label">This text has <strong>bold content</strong> and <em>italic content</em> that should be preserved</div>
+    <div class="section-title">Related Words Test - Fixed Replacement Mode</div>
+    <p class="customer-data">The NY Post is a major tabloid in New York.</p>
+    <p class="customer-data">CNN provides breaking news coverage daily.</p>
+    <p class="customer-data">The Grey Lady has won many Pulitzer prizes.</p>
+    <p class="customer-data">Yahoo! was acquired by Verizon Media.</p>
+    <p class="customer-data">TechCrunch covers startup news in Silicon Valley.</p>
+    <p class="customer-data">Washington Post is owned by Bezos.</p>
+    <p><em>Related words replaced with fixed "[REDACTED]" text</em></p>
+  </div>
+
+  <div class="test-section">
+    <div class="section-title">Regex Replacement Test</div>
+    <p class="regex-test">Contact us at john.doe@company.com for more info.</p>
+    <p class="regex-test">The report from 2023 shows revenues of $1,234,567.89.</p>
+    <p class="regex-test">Our API endpoints support HTTP and HTTPS protocols.</p>
+    <p class="regex-test">The user ID is 5678 and was created in 2022.</p>
+    <p class="regex-test">Send payment of $45.99 to support@acme.org by December 2024.</p>
+    <p><em>useRegex: true - emails, years, money, acronyms replaced with patterns</em></p>
   </div>
   
   <div class="test-section">
-    <div class="section-title">Text Scrambling Comparison</div>
-    <p class="readable-text">This text uses preserveEnds=true so you can still read it easily.</p>
-    <p class="content">This text uses preserveEnds=false so it's completely scrambled and unreadable.</p>
+    <div class="section-title">Headlines (should be scrambled with preserved ends + mixed case)</div>
+    <div class="title"><h1>Breaking News: Major Product Launch Announcement</h1></div>
+    <a class="post-title">Revolutionary Technology Changes Industry Standards</a>
+    <div class="google-key-label">This text has <strong>bold content</strong> and <em>italic content</em> that should be preserved</div>
+    <p><em>preserveCase: false - notice the random MiXeD cAsE in scrambled text</em></p>
+  </div>
+  
+  <div class="test-section">
+    <div class="section-title">Preserve Options Test</div>
+    <p class="scramble-no-preserve">Hello, World! This has punctuation & spaces. (123) Supercalifragilisticexpialidocious</p>
+    <p class="scramble-mixed">Hello, World! Mixed options test. (456) Antidisestablishmentarianism and Pneumonoultramicroscopicsilicovolcanoconiosis</p>
+    <p class="scramble-no-preserve">Short words: cat dog run jump</p>
+    <p class="scramble-mixed">Medium length words: elephant giraffe rhinoceros hippopotamus</p>
+    <p><em>First: All preserve=false (chaos!), Second: Mixed preserve options</em></p>
+    <table border="1" style="margin: 10px 0; border-collapse: collapse;">
+      <tr>
+        <th style="padding: 5px;">Option</th>
+        <th style="padding: 5px;">.scramble-no-preserve</th>
+        <th style="padding: 5px;">.scramble-mixed</th>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">preserveCase</td>
+        <td style="padding: 5px;">false</td>
+        <td style="padding: 5px;">true</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">preservePunctuation</td>
+        <td style="padding: 5px;">false</td>
+        <td style="padding: 5px;">false</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">preserveSpaces</td>
+        <td style="padding: 5px;">false</td>
+        <td style="padding: 5px;">true</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">preserveLength</td>
+        <td style="padding: 5px;">false</td>
+        <td style="padding: 5px;">false</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">preserveEnds</td>
+        <td style="padding: 5px;">false</td>
+        <td style="padding: 5px;">true</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px;">maxWordLength</td>
+        <td style="padding: 5px;">0 (auto)</td>
+        <td style="padding: 5px;">auto (omitted)</td>
+      </tr>
+    </table>
+    <p><em>Auto mode: word length limits based on the longest word in each element's original content!</em></p>
   </div>
   
   <div class="test-section">

@@ -80,11 +80,13 @@
                 id: customerId,
                 name: customerDetails.customerName,
                 domain: customerDetails.customerDomain,
+                relatedWords: customerDetails.relatedWords || [],
                 group: customerGroup,
                 groupName: groupMapping.name,
                 pattern: patternName
               };
               log('✅ Known customer detected:', customer);
+              log('Related words for replacement:', customer.relatedWords);
               log('=== CUSTOMER DETECTION SUCCESS ===');
               return customer;
             } else {
@@ -370,25 +372,88 @@
     }
 
     // Character-by-character scrambling (original behavior)
-    return text.split('').map(char => {
-      if (preserveSpaces && /\s/.test(char)) {
-        return char;
+    let result = text.split('').map(char => {
+      // Handle spaces
+      if (/\s/.test(char)) {
+        if (preserveSpaces) {
+          return char; // Keep original space
+        } else {
+          // Replace space with random character
+          const randomChar = String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+          return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        }
       }
-      if (preservePunctuation && /[^\w\s]/.test(char)) {
-        return char;
+      
+      // Handle punctuation
+      if (/[^\w\s]/.test(char)) {
+        if (preservePunctuation) {
+          return char; // Keep original punctuation
+        } else {
+          // Replace punctuation with random character
+          const randomChar = String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+          return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        }
       }
+      
+      // Handle letters
       if (/[a-zA-Z]/.test(char)) {
         const isUpper = char === char.toUpperCase();
         const randomChar = String.fromCharCode(
-          Math.floor(Math.random() * 26) + (isUpper ? 65 : 97)
+          Math.floor(Math.random() * 26) + 97 // Always start with lowercase
         );
-        return preserveCase && isUpper ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        
+        if (preserveCase) {
+          // Preserve original case
+          return isUpper ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        } else {
+          // Randomly mix case
+          return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        }
       }
+      
+      // Handle numbers
       if (/[0-9]/.test(char)) {
         return Math.floor(Math.random() * 10).toString();
       }
+      
+      // Keep other characters as-is
       return char;
     }).join('');
+
+    // If we replaced spaces with characters, inject some random spaces back for readability
+    if (!preserveSpaces && result.length > 10) {
+      // Count approximate words in original text (spaces + 1)
+      const originalWordCount = (text.match(/\s+/g) || []).length + 1;
+      const targetSpaces = Math.max(1, Math.floor(originalWordCount * 0.3)); // 30% of original spaces
+      
+      // Insert random spaces at random positions
+      for (let i = 0; i < targetSpaces; i++) {
+        const insertPos = Math.floor(Math.random() * (result.length - 2)) + 1; // Not at start/end
+        result = result.slice(0, insertPos) + ' ' + result.slice(insertPos);
+      }
+    }
+
+    // Enforce maximum word length to prevent layout-breaking long strings
+    result = enforceMaxWordLength(result, options, text);
+
+    // Handle length preservation
+    if (!preserveLength) {
+      // Randomly shorten or lengthen the text (10-150% of original length)
+      const targetLength = Math.floor(text.length * (0.1 + Math.random() * 1.4));
+      
+      if (result.length < targetLength) {
+        // Add random characters
+        while (result.length < targetLength) {
+          const randomChar = String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+          result += Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        }
+      } else if (result.length > targetLength) {
+        // Truncate
+        result = result.substring(0, targetLength);
+      }
+    }
+
+    return result;
   }
 
   function scrambleByWords(text, options = {}) {
@@ -440,12 +505,50 @@
     if (currentToken) tokens.push({ type: tokenType, content: currentToken });
     
     // Process tokens and scramble words
-    return tokens.map(token => {
+    let result = tokens.map(token => {
       if (token.type === 'word') {
         return scrambleWord(token.content, options);
+      } else if (token.type === 'space') {
+        if (preserveSpaces) {
+          return token.content; // Keep original spaces
+        } else {
+          // Replace spaces with random characters
+          return token.content.split('').map(() => {
+            const randomChar = String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+            return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+          }).join('');
+        }
+      } else if (token.type === 'punctuation') {
+        if (preservePunctuation) {
+          return token.content; // Keep original punctuation
+        } else {
+          // Replace punctuation with random characters
+          return token.content.split('').map(() => {
+            const randomChar = String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+            return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+          }).join('');
+        }
       }
       return token.content;
     }).join('');
+
+    // If we replaced spaces with characters, inject some random spaces back for readability
+    if (!preserveSpaces && result.length > 10) {
+      // Count original space tokens
+      const originalSpaceCount = tokens.filter(token => token.type === 'space').length;
+      const targetSpaces = Math.max(1, Math.floor(originalSpaceCount * 0.4)); // 40% of original spaces
+      
+      // Insert random spaces at random positions
+      for (let i = 0; i < targetSpaces; i++) {
+        const insertPos = Math.floor(Math.random() * (result.length - 2)) + 1; // Not at start/end
+        result = result.slice(0, insertPos) + ' ' + result.slice(insertPos);
+      }
+    }
+
+    // Enforce maximum word length to prevent layout-breaking long strings
+    result = enforceMaxWordLength(result, options, text);
+
+    return result;
   }
 
   function scrambleWord(word, options = {}) {
@@ -465,9 +568,16 @@
       if (/[a-zA-Z]/.test(char)) {
         const isUpper = char === char.toUpperCase();
         const randomChar = String.fromCharCode(
-          Math.floor(Math.random() * 26) + (isUpper ? 65 : 97)
+          Math.floor(Math.random() * 26) + 97 // Always start with lowercase
         );
-        return preserveCase && isUpper ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        
+        if (preserveCase) {
+          // Preserve original case
+          return isUpper ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        } else {
+          // Randomly mix case
+          return Math.random() < 0.5 ? randomChar.toUpperCase() : randomChar.toLowerCase();
+        }
       } else if (/[0-9]/.test(char)) {
         return Math.floor(Math.random() * 10).toString();
       }
@@ -475,6 +585,50 @@
     });
     
     return first + scrambledMiddle.join('') + last;
+  }
+
+  function enforceMaxWordLength(text, options = {}, originalText = '') {
+    let { maxWordLength = 0 } = options; // Default 0 means "auto" mode
+    
+    // Auto mode: determine max word length from original content
+    if (maxWordLength === 0) {
+      const sourceText = originalText || text;
+      const originalWords = sourceText.split(/\s+/);
+      
+      if (originalWords.length > 0) {
+        // Find the longest word in the original text
+        const longestWordLength = Math.max(...originalWords.map(word => word.length));
+        maxWordLength = Math.max(8, longestWordLength); // Minimum of 8 characters
+        log(`Auto-detected maxWordLength: ${maxWordLength} (longest original word: ${longestWordLength})`);
+      } else {
+        maxWordLength = 20; // Fallback if no words found
+      }
+    }
+    
+    if (!text || text.length <= maxWordLength) {
+      return text;
+    }
+
+    // Split text by spaces to get individual words
+    const words = text.split(' ');
+    
+    // Process each word and break it up if it's too long
+    const processedWords = words.map(word => {
+      if (word.length <= maxWordLength) {
+        return word;
+      }
+      
+      // Break long word into chunks
+      const chunks = [];
+      for (let i = 0; i < word.length; i += maxWordLength) {
+        chunks.push(word.slice(i, i + maxWordLength));
+      }
+      
+      // Join chunks with spaces
+      return chunks.join(' ');
+    });
+    
+    return processedWords.join(' ');
   }
 
   function replaceWithStatic(text, replacements) {
@@ -687,6 +841,39 @@
           replace: getCustomerValue('domain'),
           isRegex: false,
           description: 'auto customer domain'
+        });
+      }
+      
+      // Add related words replacements (only if relatedWordsMode is explicitly configured)
+      if (detectedCustomer.relatedWords && detectedCustomer.relatedWords.length > 0 && options.relatedWordsMode) {
+        log(`Adding ${detectedCustomer.relatedWords.length} related words for replacement:`, detectedCustomer.relatedWords);
+        
+        const relatedWordsMode = options.relatedWordsMode;
+        log(`Related words mode: ${relatedWordsMode}`);
+        
+        detectedCustomer.relatedWords.forEach((relatedWord, index) => {
+          let replacement;
+          
+          if (relatedWordsMode === 'fixed') {
+            // Use fixed replacement string
+            replacement = options.relatedWordsReplacement || '[REDACTED]';
+          } else if (relatedWordsMode === 'scramble') {
+            // Scramble the related word
+            const scrambleOptions = options.relatedWordsScrambleOptions || {};
+            replacement = scrambleText(relatedWord, scrambleOptions);
+          } else if (relatedWordsMode === 'smart') {
+            // Smart mode - simple generic replacement
+            replacement = '[REDACTED]';
+          }
+          
+          allReplacements.push({
+            search: relatedWord,
+            replace: replacement,
+            isRegex: false,
+            description: `auto related word (${relatedWordsMode}): ${relatedWord}`
+          });
+          
+          log(`Related word "${relatedWord}" → "${replacement}" (mode: ${relatedWordsMode})`);
         });
       }
       

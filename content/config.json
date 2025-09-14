@@ -25,19 +25,23 @@
       "customers": {
         "nypost.com": {
           "customerName": "NY Post",
-          "customerDomain": "nypost.com"
+          "customerDomain": "nypost.com",
+          "relatedWords": ["New York Post", "nypost", "post", "new york", "nyp", "page six", "pagesix"]
         },
         "theonion.com": {
           "customerName": "The Onion",
-          "customerDomain": "theonion.com"
+          "customerDomain": "theonion.com",
+          "relatedWords": ["onion", "theonion"]
         },
         "yahoo.vip.net": {
           "customerName": "Yahoo Inc",
-          "customerDomain": "yahoo.com"
+          "customerDomain": "yahoo.com",
+          "relatedWords": ["yahoo", "yahoo!", "verizon media", "oath"]
         },
         "cnn.vip.net": {
           "customerName": "CNN Digital",
-          "customerDomain": "cnn.com"
+          "customerDomain": "cnn.com",
+          "relatedWords": ["cnn", "cable news", "turner", "warner", "breaking news"]
         }
       }
     },
@@ -46,57 +50,29 @@
       "customers": {
         "nytimes": {
           "customerName": "The New York Times",
-          "customerDomain": "nytimes.com"
+          "customerDomain": "nytimes.com",
+          "relatedWords": ["times", "new york", "ny", "grey lady", "nyt", "pulitzer", "manhattan"]
         },
         "washpost": {
           "customerName": "The Washington Post",
-          "customerDomain": "washingtonpost.com"
+          "customerDomain": "washingtonpost.com",
+          "relatedWords": ["washington", "wapo", "post", "bezos", "democracy dies", "dc"]
         },
         "techcrunch": {
           "customerName": "TechCrunch Media",
-          "customerDomain": "techcrunch.com"
+          "customerDomain": "techcrunch.com",
+          "relatedWords": ["techcrunch", "crunch", "startup", "disrupt", "silicon valley", "vc"]
         }
       }
     }
   },
   "transformations": [
     {
-      "name": "customer_names",
-      "type": "customerReplace", 
-      "selectors": [
-        ".customer-name",
-        ".site-name", 
-        ".publisher-name",
-        "[data-customer-name]",
-        ".site-title",
-        ".brand-name"
-      ],
-      "options": {
-        "replaceWith": "customerName",
-        "fallback": "Customer X"
-      }
-    },
-    {
-      "name": "customer_domains",
-      "type": "customerReplace",
-      "selectors": [
-        ".domain",
-        ".website",
-        "[data-domain]",
-        ".site-url"
-      ],
-      "options": {
-        "replaceWith": "customerDomain", 
-        "fallback": "customerx.com"
-      }
-    },
-    {
       "name": "headlines_scramble",
       "type": "scramble",
       "selectors": [
         "a.post-title",
         "div.title h1",
-        "div.google-key-label",
         "div.metas-listing div.title a[href*='/campaigns/id/']"
       ],
       "options": {
@@ -104,7 +80,8 @@
         "preservePunctuation": true,
         "preserveSpaces": true,
         "preserveLength": true,
-        "preserveEnds": true
+        "preserveEnds": true,
+        "maxWordLength": 0
       }
     },
     {
@@ -171,6 +148,20 @@
       }
     },
     {
+      "name": "seo_scramble",
+      "type": "scramble",
+      "selectors": [
+        "div.google-key-label"
+      ],
+      "options": {
+        "preserveCase": true,
+        "preservePunctuation": true,
+        "preserveSpaces": true,
+        "preserveLength": true,
+        "preserveEnds": true
+      }
+    },
+    {
       "name": "customer_data_replacement",
       "type": "partialReplace",
       "selectors": [
@@ -179,8 +170,7 @@
         "a.publisher-link span.publisher-info",
         "div.sitepicker div.publisher span.site-name-wrapper span",
         "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted",
-        "div.metas-listing div.title a[href*='/referrers/internal/']"
+        "span.site-name-wrapper span.highlighted"
       ],
       "options": {
         "replacements": {
@@ -195,18 +185,43 @@
       }
     },
     {
-      "name": "readable_scramble",
-      "type": "scramble",
+      "name": "related_words_replacement",
+      "type": "partialReplace",
       "selectors": [
-        ".readable-text",
-        ".partial-scramble"
+        "div.metas-listing div.title a[href*='/referrers/internal/']"
       ],
       "options": {
-        "preserveCase": true,
-        "preservePunctuation": true,
-        "preserveSpaces": true,
-        "preserveLength": true,
-        "preserveEnds": true
+        "caseSensitive": false,
+        "useRegex": false,
+        "preserveHtml": true,
+        "relatedWordsMode": "fixed",
+        "_altRelatedWordsMode": "scramble",
+        "relatedWordsReplacement": "[REDACTED]",
+        "relatedWordsScrambleOptions": {
+          "preserveCase": true,
+          "preservePunctuation": true,
+          "preserveSpaces": true,
+          "preserveLength": true,
+          "preserveEnds": false
+        }
+      }
+    },
+    {
+      "name": "regex_replacement_demo",
+      "type": "partialReplace",
+      "selectors": [
+        ".regex-test"
+      ],
+      "options": {
+        "replacements": {
+          "\\b\\d{4}\\b": "YYYY",
+          "\\b[A-Z]{2,}\\b": "[ACRONYM]",
+          "\\$\\d+(\\.\\d{2})?": "$XX.XX",
+          "\\b\\w+@\\w+\\.\\w+\\b": "email@example.com"
+        },
+        "caseSensitive": false,
+        "useRegex": true,
+        "preserveHtml": true
       }
     },
     {
