@@ -15,6 +15,9 @@
   let processTimer = null;
   let detectedCustomer = null; // Will store { id, name, domain } if detected
   let processingCounter = 0; // Track processing cycles
+  let headlineIndex = 0; // Track current headline index for non-repeating selection
+  let elementHeadlineMap = new Map(); // Map element to assigned headline for consistency
+  let headlines = null; // Will store loaded headlines
 
   // === UTILITY FUNCTIONS ===
   
@@ -244,7 +247,9 @@
     processedElements = new WeakSet();
     processedElementsMap.clear();
     elementContentHashes.clear();
-    log('Cleared all processed element tracking and content hashes');
+    elementHeadlineMap.clear(); // Clear element headline assignments
+    headlineIndex = 0; // Reset headline index to start from the beginning
+    log('Cleared all processed element tracking and content hashes, reset headline index');
   }
 
   function getElementSignature(element) {
@@ -259,9 +264,71 @@
     return array[Math.floor(Math.random() * array.length)];
   }
 
+  // === HEADLINE LOADING ===
+
+  async function loadHeadlines() {
+    if (headlines) {
+      return headlines; // Already loaded
+    }
+
+    try {
+      const headlinesUrl = chrome.runtime.getURL('content/news_headlines.js');
+      const response = await fetch(headlinesUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load headlines: ${response.status} ${response.statusText}`);
+      }
+      
+      const headlinesText = await response.text();
+      
+      // Parse the headlines as JSON (the file contains a JSON array)
+      const headlinesArray = JSON.parse(headlinesText);
+      
+      if (Array.isArray(headlinesArray) && headlinesArray.length > 0) {
+        headlines = headlinesArray;
+        log(`Loaded ${headlines.length} headlines from external file`);
+        return headlines;
+      } else {
+        throw new Error('Invalid headlines format in loaded file');
+      }
+    } catch (err) {
+      error('Failed to load headlines:', err);
+      // Fallback to a small set of headlines
+      headlines = [
+        "Breaking News: Major Development in Technology Sector",
+        "Global Initiative Promotes Sustainable Development",
+        "Revolutionary Medical Breakthrough Saves Lives",
+        "International Cooperation Addresses Climate Change",
+        "Breakthrough in Renewable Energy Technology"
+      ];
+      log('Using fallback headlines due to loading error');
+      return headlines;
+    }
+  }
+
   // === REPLACEMENT FUNCTIONS ===
 
   const replacementFunctions = {
+    generateRandomHeadline: async function(args, element) {
+      // Load headlines if not already loaded
+      const headlinesArray = await loadHeadlines();
+      
+      // Check if this element already has a headline assigned
+      if (elementHeadlineMap.has(element)) {
+        const assignedHeadline = elementHeadlineMap.get(element);
+        log(`Reusing headline for element: "${assignedHeadline}"`);
+        return assignedHeadline;
+      }
+      
+      // Assign the next headline in sequence to this element
+      const headline = headlinesArray[headlineIndex];
+      elementHeadlineMap.set(element, headline);
+      headlineIndex = (headlineIndex + 1) % headlinesArray.length;
+      
+      log(`Assigned headline ${headlineIndex}/${headlinesArray.length} to element: "${headline}"`);
+      return headline;
+    },
+
     generateRandomAuthorName: function(args) {
       const { firstNames = [], lastNames = [] } = args || {};
       
@@ -337,14 +404,14 @@
     }
   };
 
-  function executeReplacementFunction(functionName, functionArgs) {
+  async function executeReplacementFunction(functionName, functionArgs, element) {
     if (!replacementFunctions[functionName]) {
       error(`Unknown replacement function: ${functionName}`);
       return 'Unknown Function';
     }
     
     try {
-      const result = replacementFunctions[functionName](functionArgs);
+      const result = await replacementFunctions[functionName](functionArgs, element);
       log(`Executed function ${functionName}:`, result);
       return result;
     } catch (err) {
@@ -654,7 +721,7 @@
 
   // === ELEMENT PROCESSING ===
 
-  function processElement(element, transformation) {
+  async function processElement(element, transformation) {
     const { type, options = {}, name } = transformation;
     
     // CSS injection doesn't need an element and should only run once
@@ -703,7 +770,7 @@
           break;
 
         case 'functionReplace':
-          processFunctionReplace(element, options);
+          await processFunctionReplace(element, options);
           break;
 
         case 'partialReplace':
@@ -786,7 +853,7 @@
     }
   }
 
-  function processFunctionReplace(element, options) {
+  async function processFunctionReplace(element, options) {
     if (!element.textContent.trim()) return;
     
     const { functionName, functionArgs = {} } = options;
@@ -796,7 +863,7 @@
       return;
     }
     
-    const replacement = executeReplacementFunction(functionName, functionArgs);
+    const replacement = await executeReplacementFunction(functionName, functionArgs, element);
     element.textContent = replacement;
   }
 
@@ -1283,7 +1350,7 @@
 
   // === MAIN PROCESSING FUNCTIONS ===
 
-  function processAllElements() {
+  async function processAllElements() {
     if (!config || !config.transformations || !isEnabled) return;
 
     processingCounter++;
@@ -1295,12 +1362,12 @@
     let totalElementsProcessed = 0;
     let totalElementsSkipped = 0;
 
-    config.transformations.forEach(transformation => {
-      if (!transformation.selectors) return;
+    for (const transformation of config.transformations) {
+      if (!transformation.selectors) continue;
       
       log(`Processing transformation: ${transformation.name} (${transformation.type})`);
       
-      transformation.selectors.forEach(selector => {
+      for (const selector of transformation.selectors) {
         try {
           const elements = document.querySelectorAll(selector);
           totalElementsFound += elements.length;
@@ -1311,7 +1378,7 @@
             log(`  ⚠️ No elements found for selector "${selector}"`);
           }
           
-          elements.forEach((element, index) => {
+          for (const element of elements) {
             const elementSig = getElementSignature(element);
             
             if (hasBeenProcessed(element, transformation.name)) {
@@ -1322,14 +1389,14 @@
               }
             } else {
               totalElementsProcessed++;
-              processElement(element, transformation);
+              await processElement(element, transformation);
             }
-          });
+          }
         } catch (err) {
           error(`Invalid selector "${selector}" in transformation "${transformation.name}":`, err);
         }
-      });
-    });
+      }
+    }
 
     const cycleTime = performance.now() - cycleStart;
     
@@ -1382,9 +1449,9 @@
 
     const interval = config?.settings?.processInterval || 100;
     
-    processTimer = setInterval(() => {
+    processTimer = setInterval(async () => {
       if (!isEnabled) return;
-      processAllElements();
+      await processAllElements();
     }, interval);
 
     log(`Started continuous processing every ${interval}ms`);
@@ -1418,7 +1485,7 @@
 
       if (hasNewContent && isEnabled) {
         // Debounce the processing
-        setTimeout(processAllElements, 50);
+        setTimeout(async () => await processAllElements(), 50);
       }
     });
 
@@ -1527,9 +1594,9 @@
     log('Continuing initialization after DOM ready...');
 
     // Wait for document.body with retry logic
-    waitForBody(() => {
+    waitForBody(async () => {
       // Process existing content
-      processAllElements();
+      await processAllElements();
 
       // Set up continuous processing and mutation observer
       setupMutationObserver();
@@ -1570,7 +1637,7 @@
 
   // === MESSAGE HANDLING ===
 
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     log('Received message:', request);
 
     switch (request.action) {
@@ -1579,7 +1646,7 @@
         
         if (isEnabled) {
           hideContentImmediately();
-          processAllElements();
+          await processAllElements();
           setupMutationObserver();
           startContinuousProcessing();
           setTimeout(revealAnonymizedContent, 300);

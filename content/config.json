@@ -68,6 +68,49 @@
   },
   "transformations": [
     {
+      "name": "customer_names",
+      "type": "customerReplace", 
+      "selectors": [
+        ".customer-name",
+        ".site-name", 
+        ".publisher-name",
+        "[data-customer-name]",
+        ".site-title",
+        ".brand-name"
+      ],
+      "options": {
+        "replaceWith": "customerName",
+        "fallback": "Customer X"
+      }
+    },
+    {
+      "name": "customer_domains",
+      "type": "customerReplace",
+      "selectors": [
+        ".domain",
+        ".website",
+        "[data-domain]",
+        ".site-url"
+      ],
+      "options": {
+        "replaceWith": "customerDomain", 
+        "fallback": "customerx.com"
+      }
+    },
+    {
+      "name": "headlines_replace",
+      "type": "functionReplace",
+      "selectors": [
+        "a.post-title",
+        "div.title h1",
+        "div.metas-listing div.title a[href*='/campaigns/id/']"
+      ],
+      "options": {
+        "functionName": "generateRandomHeadline",
+        "functionArgs": {}
+      }
+    },
+    {
       "name": "headlines_scramble",
       "type": "scramble",
       "selectors": [
