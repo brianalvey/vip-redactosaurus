@@ -69,6 +69,38 @@
   },
   "transformations": [
     {
+      "name": "customer_names",
+      "type": "customerReplace", 
+      "selectors": [
+        ".customer-name",
+        ".site-name", 
+        ".publisher-name",
+        "[data-customer-name]",
+        ".site-title",
+        ".brand-name"
+      ],
+      "options": {
+        "replaceWith": "customerName",
+        "fallback": "Customer X"
+      }
+    },
+    {
+      "name": "customer_domains",
+      "type": "customerReplace",
+      "selectors": [
+        ".domain",
+        ".website",
+        "[data-domain]",
+        ".site-url"
+      ],
+      "options": {
+        "replaceWith": "customerDomain", 
+        "fallback": "customerx.com"
+      }
+    },
+    {
+      "name": "headlines_replace",
+      "type": "functionReplace",
       "name": "headlines_scramble",
       "type": "scramble",
       "selectors": [
@@ -77,6 +109,8 @@
         "div.metas-listing div.title a[href*='/campaigns/id/']"
       ],
       "options": {
+        "functionName": "generateRandomHeadline",
+        "functionArgs": {}
         "preserveCase": true,
         "preservePunctuation": true,
         "preserveSpaces": true,
