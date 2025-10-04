@@ -5,12 +5,15 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // DOM elements
   const toggleSwitch = document.getElementById('toggleSwitch');
+  const wakeLockSwitch = document.getElementById('wakeLockSwitch');
   const status = document.getElementById('status');
   const processedCount = document.getElementById('processedCount');
   const uptime = document.getElementById('uptime');
   
   // State
   let isEnabled = false;
+  let wakeLockEnabled = false;
+  let wakeLock = null;
   let startTime = Date.now();
   
   // Initialize popup
@@ -18,9 +21,30 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Add toggle functionality
   toggleSwitch.addEventListener('click', handleToggle);
+  wakeLockSwitch.addEventListener('click', handleWakeLockToggle);
   
   // Update uptime every second
   setInterval(updateUptime, 1000);
+
+  // Handle visibility change to restore wake lock
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && wakeLockEnabled && !wakeLock) {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake lock released');
+            wakeLock = null;
+            wakeLockEnabled = false;
+            updateUI();
+          });
+          console.log('Wake lock restored');
+        }
+      } catch (error) {
+        console.error('Failed to restore wake lock:', error);
+      }
+    }
+  });
   
   async function init() {
     try {
@@ -45,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (response && response.success !== false) {
           isEnabled = response.enabled || false;
+          wakeLockEnabled = response.wakeLockEnabled || false;
           
           if (response.installDate) {
             startTime = response.installDate;
@@ -55,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           console.log('[VIP Redactosaurus Popup] Status loaded:', {
             enabled: isEnabled,
+            wakeLockEnabled: wakeLockEnabled,
             installDate: response.installDate
           });
         } else {
@@ -98,13 +124,67 @@ document.addEventListener('DOMContentLoaded', function() {
       showError('Failed to toggle anonymization');
     }
   }
+
+  async function handleWakeLockToggle() {
+    const newState = !wakeLockEnabled;
+    
+    try {
+      console.log('[VIP Redactosaurus Popup] Toggling wake lock to:', newState);
+      
+      if (newState) {
+        // Enable wake lock
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake lock released');
+            wakeLock = null;
+            wakeLockEnabled = false;
+            updateUI();
+          });
+          wakeLockEnabled = true;
+          console.log('Wake lock active');
+        } else {
+          showError('Wake lock not supported in this browser');
+          return;
+        }
+      } else {
+        // Disable wake lock
+        if (wakeLock) {
+          await wakeLock.release();
+          wakeLock = null;
+        }
+        wakeLockEnabled = false;
+        console.log('Wake lock inactive');
+      }
+      
+      // Update UI
+      updateUI();
+      
+      // Save state to background script
+      chrome.runtime.sendMessage({
+        action: 'updateWakeLock',
+        enabled: wakeLockEnabled
+      });
+      
+    } catch (error) {
+      console.error('[VIP Redactosaurus Popup] Wake lock error:', error);
+      showError('Failed to toggle wake lock');
+    }
+  }
   
   function updateUI(processing = false) {
-    // Update toggle switch
+    // Update anonymization toggle switch
     if (isEnabled) {
       toggleSwitch.classList.add('active');
     } else {
       toggleSwitch.classList.remove('active');
+    }
+    
+    // Update wake lock toggle switch
+    if (wakeLockEnabled) {
+      wakeLockSwitch.classList.add('active');
+    } else {
+      wakeLockSwitch.classList.remove('active');
     }
     
     // Update status

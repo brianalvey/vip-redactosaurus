@@ -11,6 +11,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     // Set default enabled state
     chrome.storage.local.set({ 
       enabled: true,
+      wakeLockEnabled: true,
       installDate: Date.now()
     });
     console.log('[VIP Redactosaurus] Default settings initialized');
@@ -37,6 +38,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case 'updateState':
       handleUpdateState(request, sendResponse);
+      return true; // Keep message channel open
+
+    case 'updateWakeLock':
+      handleUpdateWakeLock(request, sendResponse);
       return true; // Keep message channel open
 
     default:
@@ -89,11 +94,12 @@ async function handleToggle(request, sendResponse) {
 // Handle status requests from popup
 async function handleGetStatus(sendResponse) {
   try {
-    const result = await chrome.storage.local.get(['enabled', 'installDate']);
+    const result = await chrome.storage.local.get(['enabled', 'wakeLockEnabled', 'installDate']);
     
     sendResponse({ 
       success: true,
       enabled: result.enabled !== false, // Default to true
+      wakeLockEnabled: result.wakeLockEnabled || false,
       installDate: result.installDate,
       timestamp: Date.now()
     });
@@ -103,7 +109,8 @@ async function handleGetStatus(sendResponse) {
     sendResponse({ 
       success: false, 
       error: error.message,
-      enabled: true // Safe default
+      enabled: true, // Safe default
+      wakeLockEnabled: false
     });
   }
 }
@@ -123,6 +130,29 @@ async function handleUpdateState(request, sendResponse) {
     
   } catch (error) {
     console.error('[VIP Redactosaurus] Error updating state:', error);
+    sendResponse({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+}
+
+// Handle wake lock update requests
+async function handleUpdateWakeLock(request, sendResponse) {
+  try {
+    const wakeLockEnabled = request.enabled;
+    
+    // Store the new wake lock state
+    await chrome.storage.local.set({ wakeLockEnabled });
+    console.log('[VIP Redactosaurus] Wake lock state updated to:', wakeLockEnabled);
+    
+    sendResponse({ 
+      success: true, 
+      wakeLockEnabled: wakeLockEnabled
+    });
+    
+  } catch (error) {
+    console.error('[VIP Redactosaurus] Error updating wake lock state:', error);
     sendResponse({ 
       success: false, 
       error: error.message 
