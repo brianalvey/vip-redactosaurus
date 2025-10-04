@@ -17,6 +17,7 @@
     "hosting-dashboard": {
       "pattern": "dashboard\\.wpvip\\.com/apps/([^/]+)/.*",
       "customerIdGroup": 2
+      
     }
   },
   "customerMapping": {
@@ -170,7 +171,8 @@
         "a.publisher-link span.publisher-info",
         "div.sitepicker div.publisher span.site-name-wrapper span",
         "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted"
+        "span.site-name-wrapper span.highlighted",
+        "div.debug-section"
       ],
       "options": {
         "replacements": {
