@@ -99,18 +99,15 @@
       }
     },
     {
-      "name": "headlines_replace",
-      "type": "functionReplace",
       "name": "headlines_scramble",
       "type": "scramble",
       "selectors": [
         "a.post-title",
         "div.title h1",
-        "div.metas-listing div.title a[href*='/campaigns/id/']"
+        "div.metas-listing div.title a[href*='/campaigns/id/']",
+        "a.listing-item-title"
       ],
       "options": {
-        "functionName": "generateRandomHeadline",
-        "functionArgs": {}
         "preserveCase": true,
         "preservePunctuation": true,
         "preserveSpaces": true,
