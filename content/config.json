@@ -3,7 +3,8 @@
     "processInterval": 100,
     "maxRetries": 0,
     "debug": false,
-    "showDemoIndicator": false
+    "showDemoIndicator": false,
+    "headlineMode": "replace"
   },
   "urlPatterns": {
     "parsely": {
@@ -101,6 +102,9 @@
     {
       "name": "headlines_replace",
       "type": "functionReplace",
+      "enabled": true,
+      "enabledSetting": "headlineMode",
+      "enabledValue": "replace",
       "selectors": [
         "a.post-title",
         "div.title h1",
@@ -115,6 +119,9 @@
     {
       "name": "headlines_scramble",
       "type": "scramble",
+      "enabled": true,
+      "enabledSetting": "headlineMode",
+      "enabledValue": "scramble",
       "selectors": [
         "a.post-title",
         "div.title h1",

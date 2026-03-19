@@ -12,6 +12,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.local.set({ 
       enabled: true,
       wakeLockEnabled: true,
+      headlineMode: 'replace',
       installDate: Date.now()
     });
     console.log('[VIP Redactosaurus] Default settings initialized');
@@ -42,6 +43,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case 'updateWakeLock':
       handleUpdateWakeLock(request, sendResponse);
+      return true; // Keep message channel open
+
+    case 'updateHeadlineMode':
+      handleUpdateHeadlineMode(request, sendResponse);
       return true; // Keep message channel open
 
     default:
@@ -94,12 +99,13 @@ async function handleToggle(request, sendResponse) {
 // Handle status requests from popup
 async function handleGetStatus(sendResponse) {
   try {
-    const result = await chrome.storage.local.get(['enabled', 'wakeLockEnabled', 'installDate']);
+    const result = await chrome.storage.local.get(['enabled', 'wakeLockEnabled', 'headlineMode', 'installDate']);
     
     sendResponse({ 
       success: true,
       enabled: result.enabled !== false, // Default to true
       wakeLockEnabled: result.wakeLockEnabled || false,
+      headlineMode: result.headlineMode || 'replace',
       installDate: result.installDate,
       timestamp: Date.now()
     });
@@ -110,7 +116,8 @@ async function handleGetStatus(sendResponse) {
       success: false, 
       error: error.message,
       enabled: true, // Safe default
-      wakeLockEnabled: false
+      wakeLockEnabled: false,
+      headlineMode: 'replace'
     });
   }
 }
@@ -153,6 +160,29 @@ async function handleUpdateWakeLock(request, sendResponse) {
     
   } catch (error) {
     console.error('[VIP Redactosaurus] Error updating wake lock state:', error);
+    sendResponse({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+}
+
+// Handle headline mode update requests
+async function handleUpdateHeadlineMode(request, sendResponse) {
+  try {
+    const headlineMode = request.mode;
+    
+    // Store the new headline mode
+    await chrome.storage.local.set({ headlineMode });
+    console.log('[VIP Redactosaurus] Headline mode updated to:', headlineMode);
+    
+    sendResponse({ 
+      success: true, 
+      headlineMode: headlineMode
+    });
+    
+  } catch (error) {
+    console.error('[VIP Redactosaurus] Error updating headline mode:', error);
     sendResponse({ 
       success: false, 
       error: error.message 

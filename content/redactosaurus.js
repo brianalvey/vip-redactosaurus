@@ -1365,6 +1365,17 @@
     for (const transformation of config.transformations) {
       if (!transformation.selectors) continue;
       
+      // Check if transformation is conditionally enabled based on a setting
+      if (transformation.enabledSetting) {
+        const settingValue = config.settings?.[transformation.enabledSetting];
+        const expectedValue = transformation.enabledValue;
+        
+        if (settingValue !== expectedValue) {
+          log(`Skipping transformation "${transformation.name}" (setting ${transformation.enabledSetting} = "${settingValue}", expected "${expectedValue}")`);
+          continue;
+        }
+      }
+      
       log(`Processing transformation: ${transformation.name} (${transformation.type})`);
       
       for (const selector of transformation.selectors) {
@@ -1669,9 +1680,33 @@
         });
         break;
 
+      case 'updateHeadlineMode':
+        // Update the config setting
+        if (config && config.settings) {
+          config.settings.headlineMode = request.mode;
+          log(`Headline mode updated to: ${request.mode}`);
+          
+          // Reset processed elements to force re-processing with new mode
+          resetProcessedElements();
+          
+          // Reprocess all elements immediately if enabled
+          if (isEnabled) {
+            hideContentImmediately();
+            await processAllElements();
+            setTimeout(revealAnonymizedContent, 300);
+          }
+          
+          sendResponse({ success: true, headlineMode: request.mode });
+        } else {
+          sendResponse({ success: false, error: 'Config not loaded' });
+        }
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown action' });
     }
+    
+    return true; // Keep message channel open for async responses
   });
 
   // === STARTUP ===

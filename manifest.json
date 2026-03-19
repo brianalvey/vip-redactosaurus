@@ -5,7 +5,8 @@
   "description": "Anonymizes specific content on webpages before rendering to enable safe product demos",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "content_scripts": [
     {

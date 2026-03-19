@@ -94,6 +94,43 @@
       transform: translateX(28px);
     }
     
+    .select-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .select-label {
+      font-weight: 600;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+    
+    .mode-select {
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      width: 100%;
+    }
+    
+    .mode-select:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .mode-select:focus {
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
+    
     .status {
       text-align: center;
       font-size: 13px;
@@ -189,6 +226,16 @@
     
     <div class="status loading" id="status">
       Loading extension status...
+    </div>
+  </div>
+  
+  <div class="main-control">
+    <div class="select-container">
+      <label class="select-label">📰 Headline Mode</label>
+      <select id="headlineModeSelect" class="mode-select">
+        <option value="replace">Replace with random headlines</option>
+        <option value="scramble">Scramble existing headlines</option>
+      </select>
     </div>
   </div>
   

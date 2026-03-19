@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // DOM elements
   const toggleSwitch = document.getElementById('toggleSwitch');
   const wakeLockSwitch = document.getElementById('wakeLockSwitch');
+  const headlineModeSelect = document.getElementById('headlineModeSelect');
   const status = document.getElementById('status');
   const processedCount = document.getElementById('processedCount');
   const uptime = document.getElementById('uptime');
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // State
   let isEnabled = false;
   let wakeLockEnabled = false;
+  let headlineMode = 'replace'; // 'replace' or 'scramble'
   let wakeLock = null;
   let startTime = Date.now();
   
@@ -22,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add toggle functionality
   toggleSwitch.addEventListener('click', handleToggle);
   wakeLockSwitch.addEventListener('click', handleWakeLockToggle);
+  headlineModeSelect.addEventListener('change', handleHeadlineModeChange);
   
   // Update uptime every second
   setInterval(updateUptime, 1000);
@@ -70,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (response && response.success !== false) {
           isEnabled = response.enabled || false;
           wakeLockEnabled = response.wakeLockEnabled || false;
+          headlineMode = response.headlineMode || 'replace';
           
           if (response.installDate) {
             startTime = response.installDate;
@@ -81,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('[VIP Redactosaurus Popup] Status loaded:', {
             enabled: isEnabled,
             wakeLockEnabled: wakeLockEnabled,
+            headlineMode: headlineMode,
             installDate: response.installDate
           });
         } else {
@@ -171,6 +176,58 @@ document.addEventListener('DOMContentLoaded', function() {
       showError('Failed to toggle wake lock');
     }
   }
+
+  async function handleHeadlineModeChange(event) {
+    const newMode = event.target.value;
+    
+    try {
+      console.log('[VIP Redactosaurus Popup] Changing headline mode to:', newMode);
+      
+      // Update state
+      const oldMode = headlineMode;
+      headlineMode = newMode;
+      updateUI(true);
+      
+      // Send message to background script
+      const bgResponse = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: 'updateHeadlineMode',
+          mode: newMode
+        }, resolve);
+      });
+      
+      // Send message to content script (if available)
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'updateHeadlineMode',
+            mode: newMode
+          }).catch(err => {
+            console.log('[VIP Redactosaurus Popup] Content script not available:', err.message);
+          });
+        }
+      } catch (tabError) {
+        console.log('[VIP Redactosaurus Popup] Could not send to content script:', tabError.message);
+      }
+      
+      if (bgResponse && bgResponse.success) {
+        console.log('[VIP Redactosaurus Popup] Headline mode updated successfully');
+        updateUI();
+      } else {
+        throw new Error('Headline mode update failed: ' + (bgResponse?.error || 'Unknown error'));
+      }
+      
+    } catch (error) {
+      console.error('[VIP Redactosaurus Popup] Headline mode change error:', error);
+      
+      // Revert state on error
+      headlineMode = oldMode;
+      headlineModeSelect.value = oldMode;
+      updateUI();
+      showError('Failed to change headline mode');
+    }
+  }
   
   function updateUI(processing = false) {
     // Update anonymization toggle switch
@@ -186,6 +243,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       wakeLockSwitch.classList.remove('active');
     }
+    
+    // Update headline mode select
+    headlineModeSelect.value = headlineMode;
     
     // Update status
     status.classList.remove('loading', 'enabled', 'disabled', 'processing');
