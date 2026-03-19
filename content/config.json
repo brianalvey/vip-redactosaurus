@@ -17,6 +17,7 @@
     "hosting-dashboard": {
       "pattern": "dashboard\\.wpvip\\.com/apps/([^/]+)/.*",
       "customerIdGroup": 2
+      
     }
   },
   "customerMapping": {
@@ -103,7 +104,8 @@
       "selectors": [
         "a.post-title",
         "div.title h1",
-        "div.metas-listing div.title a[href*='/campaigns/id/']"
+        "div.metas-listing div.title a[href*='/campaigns/id/']",
+        "a.listing-item-title"
       ],
       "options": {
         "functionName": "generateRandomHeadline",
@@ -213,7 +215,8 @@
         "a.publisher-link span.publisher-info",
         "div.sitepicker div.publisher span.site-name-wrapper span",
         "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted"
+        "span.site-name-wrapper span.highlighted",
+        "div.debug-section"
       ],
       "options": {
         "replacements": {
