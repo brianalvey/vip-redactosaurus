@@ -8,16 +8,17 @@
   let config = null;
   let isEnabled = true;
   let isInitialized = false;
-  let processedElements = new WeakSet();
-  let processedElementsMap = new Map(); // element -> Set of transformation names applied
-  let elementContentHashes = new Map(); // element -> content hash for change detection
+  let processedElementsMap = new Map();
+  let elementContentHashes = new Map();
   let mutationObserver = null;
   let processTimer = null;
-  let detectedCustomer = null; // Will store { id, name, domain } if detected
-  let processingCounter = 0; // Track processing cycles
-  let headlineIndex = 0; // Track current headline index for non-repeating selection
-  let elementHeadlineMap = new Map(); // Map element to assigned headline for consistency
-  let headlines = null; // Will store loaded headlines
+  let detectedCustomer = null;
+  let lastDetectedUrl = null;
+  let previousFakeDomain = null;
+  let processingCounter = 0;
+  let articles = null;
+  let articleIndex = 0;
+  let elementArticleMap = new Map();
 
   // === UTILITY FUNCTIONS ===
   
@@ -31,6 +32,14 @@
     console.error(`[VIP Redactosaurus] ${message}`, ...args);
   }
 
+  // === FAKE PUBLISHER IDENTITIES ===
+
+  let FAKE_IDENTITY = { name: 'Demo Network', domain: 'demosite.test' };
+
+  function generateFakeIdentity() {
+    return FAKE_IDENTITY;
+  }
+
   // === CUSTOMER DETECTION ===
 
   function detectCustomerFromUrl() {
@@ -40,220 +49,103 @@
     }
 
     const currentUrl = window.location.href;
-    log('=== CUSTOMER DETECTION START ===');
-    log('Current URL:', currentUrl);
-    log('Available URL patterns:', Object.keys(config.urlPatterns));
-    const mappingsSummary = {};
-    if (config.customerMapping) {
-      Object.keys(config.customerMapping).forEach(groupId => {
-        const group = config.customerMapping[groupId];
-        mappingsSummary[groupId] = {
-          name: group.name,
-          customerCount: Object.keys(group.customers || {}).length
-        };
-      });
-    }
-    log('Available customer mappings:', mappingsSummary);
+    log('Customer detection for:', currentUrl);
 
-    // Try each URL pattern
     for (const [patternName, patternConfig] of Object.entries(config.urlPatterns)) {
       try {
-        log(`Trying pattern '${patternName}': ${patternConfig.pattern}`);
         const regex = new RegExp(patternConfig.pattern);
         const match = currentUrl.match(regex);
-        
-        log(`Pattern '${patternName}' match result:`, match);
-        
+
         if (match && match[patternConfig.customerIdGroup]) {
-          const customerId = match[patternConfig.customerIdGroup];
-          const customerGroup = patternConfig.customerIdGroup.toString();
-          log(`✅ Customer ID detected using pattern '${patternName}':`, customerId);
-          log(`Looking in customer group: ${customerGroup}`);
-          
-          // Look up customer details in the appropriate group
-          const groupMapping = config.customerMapping?.[customerGroup];
-          log(`Customer group mapping for '${customerGroup}':`, groupMapping);
-          
-          if (groupMapping && groupMapping.customers) {
-            const customerDetails = groupMapping.customers[customerId];
-            log(`Customer mapping lookup for '${customerId}' in group '${customerGroup}':`, customerDetails);
-            
-            if (customerDetails) {
-              const customer = {
-                id: customerId,
-                name: customerDetails.customerName,
-                domain: customerDetails.customerDomain,
-                relatedWords: customerDetails.relatedWords || [],
-                group: customerGroup,
-                groupName: groupMapping.name,
-                pattern: patternName
-              };
-              log('✅ Known customer detected:', customer);
-              log('Related words for replacement:', customer.relatedWords);
-              log('=== CUSTOMER DETECTION SUCCESS ===');
-              return customer;
-            } else {
-              log(`⚠️ Customer ID '${customerId}' not found in group '${customerGroup}' customer mapping`);
-            }
-          } else {
-            log(`⚠️ Customer group '${customerGroup}' not found in mapping`);
-          }
-          
-          // Return basic customer info even if not in mapping
+          const realId = match[patternConfig.customerIdGroup];
+          const fake = generateFakeIdentity(realId);
+
           const customer = {
-            id: customerId,
-            name: null,
-            domain: null,
-            group: customerGroup,
-            groupName: groupMapping?.name || `Group ${customerGroup}`,
+            realId,
+            name: fake.name,
+            domain: fake.domain,
             pattern: patternName
           };
-          log('=== CUSTOMER DETECTION PARTIAL ===');
+
+          log('Customer detected:', customer);
           return customer;
-        } else {
-          log(`❌ Pattern '${patternName}' did not match`);
         }
       } catch (err) {
         error(`Error processing URL pattern '${patternName}':`, err);
       }
     }
 
-    log('❌ No customer ID detected from URL');
-    log('=== CUSTOMER DETECTION FAILED ===');
+    log('No customer detected from URL');
     return null;
   }
 
   function getCustomerValue(type) {
-    if (!detectedCustomer) {
-      log(`No detected customer, using fallback for ${type}`);
-      
-      // Use fallback values
-      switch (type) {
-        case 'name':
-          const fallbackNames = config?.transformations?.staticReplacements?.fallbackCustomerNames || [];
-          return fallbackNames.length > 0 ? getRandomFromArray(fallbackNames) : 'Customer X';
-        case 'domain':
-          const fallbackDomains = config?.transformations?.staticReplacements?.fallbackCustomerDomains || [];
-          return fallbackDomains.length > 0 ? getRandomFromArray(fallbackDomains) : 'customerx.com';
-        default:
-          return null;
-      }
-    }
+    if (!detectedCustomer) return null;
 
-    // Use detected customer values or configured replacements
     switch (type) {
-      case 'name':
-        return detectedCustomer.name || config?.transformations?.customerSpecific?.customerNameReplacement || 'Customer X';
-      case 'domain':
-        return detectedCustomer.domain || config?.transformations?.customerSpecific?.customerDomainReplacement || 'customerx.com';
-      case 'id':
-        return detectedCustomer.id;
-      default:
-        return null;
+      case 'name': return detectedCustomer.name;
+      case 'domain': return detectedCustomer.domain;
+      case 'realId': return detectedCustomer.realId;
+      default: return null;
     }
-  }
-
-  function generateRandomString(length, preserveCase = true, template = '') {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      const templateChar = template[i];
-      
-      if (templateChar && /[A-Z]/.test(templateChar) && preserveCase) {
-        result += upperChars[Math.floor(Math.random() * upperChars.length)];
-      } else if (templateChar && /[0-9]/.test(templateChar)) {
-        result += numbers[Math.floor(Math.random() * numbers.length)];
-      } else {
-        result += chars[Math.floor(Math.random() * chars.length)];
-      }
-    }
-    return result;
   }
 
   // === ELEMENT TRACKING ===
 
   function getContentHash(element) {
-    // Create a simple hash of the element's text content for change detection
     const content = element.textContent || '';
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
       const char = content.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
     return hash.toString(36);
   }
 
   function hasContentChanged(element) {
-    // Check if the element's content has changed since last processing
     const currentHash = getContentHash(element);
     const previousHash = elementContentHashes.get(element);
-    
-    if (previousHash === undefined) {
-      // First time seeing this element
-      return true;
-    }
-    
+    if (previousHash === undefined) return true;
     return currentHash !== previousHash;
   }
 
   function updateContentHash(element) {
-    // Update the stored content hash for this element
-    const currentHash = getContentHash(element);
-    elementContentHashes.set(element, currentHash);
+    elementContentHashes.set(element, getContentHash(element));
   }
 
   function hasBeenProcessed(element, transformationName) {
-    // Check if element has been processed by this specific transformation
-    // AND if its content hasn't changed since processing
     const processedTransformations = processedElementsMap.get(element);
-    const wasProcessed = processedTransformations && processedTransformations.has(transformationName);
-    
-    if (!wasProcessed) {
-      return false; // Never processed
+    if (!processedTransformations || !processedTransformations.has(transformationName)) {
+      return false;
     }
-    
-    // Check if content has changed since processing
-    const contentChanged = hasContentChanged(element);
-    if (contentChanged) {
+
+    if (hasContentChanged(element)) {
       log(`Content changed in ${getElementSignature(element)}, will reprocess`);
-      // Remove from processed list for this transformation so it gets reprocessed
       processedTransformations.delete(transformationName);
       return false;
     }
-    
-    return true; // Processed and content unchanged
+
+    return true;
   }
 
   function markAsProcessed(element, transformationName) {
-    // Mark element as processed by this specific transformation
     if (!processedElementsMap.has(element)) {
       processedElementsMap.set(element, new Set());
     }
     processedElementsMap.get(element).add(transformationName);
-    
-    // Update content hash to track future changes
     updateContentHash(element);
-    
-    // Also add to WeakSet for backwards compatibility
-    processedElements.add(element);
   }
 
   function resetProcessedElements() {
-    // Clear all processing tracking (used when re-enabling extension)
-    processedElements = new WeakSet();
     processedElementsMap.clear();
     elementContentHashes.clear();
-    elementHeadlineMap.clear(); // Clear element headline assignments
-    headlineIndex = 0; // Reset headline index to start from the beginning
-    log('Cleared all processed element tracking and content hashes, reset headline index');
+    elementArticleMap.clear();
+    articleIndex = 0;
+    log('Reset all element tracking');
   }
 
   function getElementSignature(element) {
-    // Create a signature for an element to help with debugging
     let sig = element.tagName.toLowerCase();
     if (element.id) sig += `#${element.id}`;
     if (element.className) sig += `.${element.className.split(' ').join('.')}`;
@@ -266,67 +158,61 @@
 
   // === HEADLINE LOADING ===
 
-  async function loadHeadlines() {
-    if (headlines) {
-      return headlines; // Already loaded
-    }
+  async function loadArticles() {
+    if (articles) return articles;
 
     try {
-      const headlinesUrl = chrome.runtime.getURL('content/news_headlines.js');
-      const response = await fetch(headlinesUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load headlines: ${response.status} ${response.statusText}`);
+      const url = chrome.runtime.getURL('content/articles.js');
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const data = JSON.parse(await response.text());
+
+      if (Array.isArray(data) && data.length > 0) {
+        articles = data;
+        log(`Loaded ${articles.length} articles`);
+        return articles;
       }
-      
-      const headlinesText = await response.text();
-      
-      // Parse the headlines as JSON (the file contains a JSON array)
-      const headlinesArray = JSON.parse(headlinesText);
-      
-      if (Array.isArray(headlinesArray) && headlinesArray.length > 0) {
-        headlines = headlinesArray;
-        log(`Loaded ${headlines.length} headlines from external file`);
-        return headlines;
-      } else {
-        throw new Error('Invalid headlines format in loaded file');
-      }
+      throw new Error('Invalid articles format');
     } catch (err) {
-      error('Failed to load headlines:', err);
-      // Fallback to a small set of headlines
-      headlines = [
-        "Breaking News: Major Development in Technology Sector",
-        "Global Initiative Promotes Sustainable Development",
-        "Revolutionary Medical Breakthrough Saves Lives",
-        "International Cooperation Addresses Climate Change",
-        "Breakthrough in Renewable Energy Technology"
+      error('Failed to load articles:', err);
+      articles = [
+        { headline: 'Breaking News: Major Development in Technology Sector', section: 'Technology' },
+        { headline: 'Global Initiative Promotes Sustainable Development', section: 'Environment' },
+        { headline: 'Revolutionary Medical Breakthrough Saves Lives', section: 'Health & Science' }
       ];
-      log('Using fallback headlines due to loading error');
-      return headlines;
+      return articles;
     }
+  }
+
+  function getArticleForElement(element) {
+    const row = element.closest('.post-row');
+    const key = row || element;
+
+    if (elementArticleMap.has(key)) {
+      return elementArticleMap.get(key);
+    }
+
+    const article = articles[articleIndex % articles.length];
+    articleIndex++;
+    elementArticleMap.set(key, article);
+    return article;
   }
 
   // === REPLACEMENT FUNCTIONS ===
 
   const replacementFunctions = {
     generateRandomHeadline: async function(args, element) {
-      // Load headlines if not already loaded
-      const headlinesArray = await loadHeadlines();
-      
-      // Check if this element already has a headline assigned
-      if (elementHeadlineMap.has(element)) {
-        const assignedHeadline = elementHeadlineMap.get(element);
-        log(`Reusing headline for element: "${assignedHeadline}"`);
-        return assignedHeadline;
-      }
-      
-      // Assign the next headline in sequence to this element
-      const headline = headlinesArray[headlineIndex];
-      elementHeadlineMap.set(element, headline);
-      headlineIndex = (headlineIndex + 1) % headlinesArray.length;
-      
-      log(`Assigned headline ${headlineIndex}/${headlinesArray.length} to element: "${headline}"`);
-      return headline;
+      await loadArticles();
+      return getArticleForElement(element).headline;
+    },
+
+    generateRandomSectionName: async function(args, element) {
+      await loadArticles();
+      return getArticleForElement(element).section;
+    },
+
+    generatePublisherName: function() {
+      return FAKE_IDENTITY.name;
     },
 
     generateRandomAuthorName: function(args) {
@@ -343,65 +229,6 @@
       return `${firstName} ${lastName}`;
     },
 
-    generateRandomCompany: function(args) {
-      const { 
-        prefixes = ['Global', 'Dynamic', 'Prime', 'Elite', 'Advanced'],
-        suffixes = ['Corp', 'Inc', 'LLC', 'Solutions', 'Industries'],
-        types = ['Media', 'Tech', 'Digital', 'Systems', 'Networks']
-      } = args || {};
-      
-      const prefix = getRandomFromArray(prefixes);
-      const type = getRandomFromArray(types);
-      const suffix = getRandomFromArray(suffixes);
-      
-      return `${prefix} ${type} ${suffix}`;
-    },
-
-    generateRandomEmail: function(args) {
-      const {
-        usernames = ['contact', 'info', 'hello', 'support', 'team', 'admin'],
-        domains = ['example.com', 'demo-site.com', 'sample.org', 'test.net']
-      } = args || {};
-      
-      const username = getRandomFromArray(usernames);
-      const domain = getRandomFromArray(domains);
-      
-      return `${username}@${domain}`;
-    },
-
-    generateRandomPhoneNumber: function(args) {
-      const { format = '(###) ###-####' } = args || {};
-      
-      return format.replace(/#/g, () => Math.floor(Math.random() * 10));
-    },
-
-    generateLoremText: function(args) {
-      const { 
-        words = 10,
-        sentences = 1,
-        wordList = [
-          'lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit',
-          'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore',
-          'magna', 'aliqua', 'enim', 'ad', 'minim', 'veniam', 'quis', 'nostrud'
-        ]
-      } = args || {};
-      
-      let result = '';
-      
-      for (let s = 0; s < sentences; s++) {
-        let sentence = '';
-        for (let w = 0; w < words; w++) {
-          const word = getRandomFromArray(wordList);
-          sentence += (w === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word);
-          if (w < words - 1) sentence += ' ';
-        }
-        sentence += '.';
-        result += sentence;
-        if (s < sentences - 1) result += ' ';
-      }
-      
-      return result;
-    }
   };
 
   async function executeReplacementFunction(functionName, functionArgs, element) {
@@ -698,25 +525,10 @@
     return processedWords.join(' ');
   }
 
-  function replaceWithStatic(text, replacements) {
-    if (!replacements || !Array.isArray(replacements)) return text;
-    return getRandomFromArray(replacements);
-  }
-
   function blurImage(element, blurAmount = '8px') {
     if (element.tagName !== 'IMG') return;
     element.style.filter = `blur(${blurAmount})`;
-    element.style.transform = 'scale(1.02)'; // Prevent blur edge artifacts
-  }
-
-  function replaceImageSrc(element, placeholderUrl) {
-    if (element.tagName !== 'IMG') return;
-    try {
-      const newSrc = chrome.runtime.getURL(placeholderUrl);
-      element.src = newSrc;
-    } catch (err) {
-      error('Failed to replace image:', err);
-    }
+    element.style.transform = 'scale(1.02)';
   }
 
   // === ELEMENT PROCESSING ===
@@ -724,49 +536,28 @@
   async function processElement(element, transformation) {
     const { type, options = {}, name } = transformation;
     
-    // CSS injection doesn't need an element and should only run once
     if (type === 'injectCSS') {
-      // Check if this CSS transformation has already been processed globally
-      if (hasBeenProcessed(document.documentElement, name)) {
-        return; // Skip already processed
-      }
-      
+      if (hasBeenProcessed(document.documentElement, name)) return;
       try {
-        log(`Processing "${name}" (${type}) - global CSS injection`);
+        log(`Processing "${name}" (${type}) - CSS injection`);
         processInjectCSS(options, name);
-        
-        // Mark as processed on document element to prevent re-injection
         markAsProcessed(document.documentElement, name);
-        log(`✅ Completed "${name}" (${type}) - CSS injected`);
       } catch (err) {
         error(`Error processing CSS transformation "${name}":`, err);
       }
       return;
     }
-    
-    // All other transformations require an element
+
     if (!element || !transformation) return;
-    
-    // Check if this specific transformation has already been applied to this element
-    if (hasBeenProcessed(element, name)) {
-      return; // Skip already processed
-    }
+    if (hasBeenProcessed(element, name)) return;
     
     try {
       const elementSig = getElementSignature(element);
       log(`Processing "${name}" (${type}) on ${elementSig}`);
 
       switch (type) {
-        case 'customerReplace':
-          processCustomerReplace(element, options);
-          break;
-
         case 'scramble':
           processScramble(element, options);
-          break;
-
-        case 'staticReplace':
-          processStaticReplace(element, options);
           break;
 
         case 'functionReplace':
@@ -790,7 +581,6 @@
           return;
       }
 
-      // Mark this transformation as applied to this element
       markAsProcessed(element, name);
       log(`✅ Completed "${name}" (${type}) on ${elementSig}`);
 
@@ -801,62 +591,23 @@
 
   // === TRANSFORMATION PROCESSORS ===
 
-  function processCustomerReplace(element, options) {
-    if (!element.textContent.trim()) return;
-
-    const { replaceWith, fallback = 'Unknown' } = options;
-    let replacement;
-
-    switch (replaceWith) {
-      case 'customerName':
-        replacement = getCustomerValue('name') || fallback;
-        break;
-      case 'customerDomain':
-        replacement = getCustomerValue('domain') || fallback;
-        break;
-      default:
-        replacement = fallback;
-    }
-
-    element.textContent = replacement;
-  }
-
   function processScramble(element, options) {
     if (!element.textContent.trim()) return;
     scrambleDirectTextNodes(element, options);
   }
 
   function scrambleDirectTextNodes(element, options) {
-    // Get all direct child nodes (including text nodes)
-    const childNodes = Array.from(element.childNodes);
-    
-    childNodes.forEach(node => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        // This is a direct text node - scramble it
-        const originalText = node.textContent;
-        if (originalText.trim()) {
-          node.textContent = scrambleText(originalText, options);
-          log(`Scrambled direct text node: "${originalText}" → "${node.textContent}"`);
-        }
+    Array.from(element.childNodes).forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        node.textContent = scrambleText(node.textContent, options);
       }
-      // Leave element nodes (HTML tags) completely untouched
-      // This preserves <span>, <strong>, <em>, <a>, etc. and their content
     });
-  }
-
-  function processStaticReplace(element, options) {
-    if (!element.textContent.trim()) return;
-    
-    const { replacements = [] } = options;
-    if (replacements.length > 0) {
-      element.textContent = getRandomFromArray(replacements);
-    }
   }
 
   async function processFunctionReplace(element, options) {
     if (!element.textContent.trim()) return;
     
-    const { functionName, functionArgs = {} } = options;
+    const { functionName, functionArgs = {}, preserveChildren = false } = options;
     
     if (!functionName) {
       error('processFunctionReplace: No functionName specified');
@@ -864,7 +615,16 @@
     }
     
     const replacement = await executeReplacementFunction(functionName, functionArgs, element);
-    element.textContent = replacement;
+
+    if (preserveChildren) {
+      Array.from(element.childNodes).forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+          node.textContent = replacement;
+        }
+      });
+    } else {
+      element.textContent = replacement;
+    }
   }
 
   function processPartialReplace(element, options) {
@@ -882,176 +642,34 @@
       return;
     }
 
-    let hasChanges = false;
+    const allReplacements = Object.entries(replacements).map(([search, replace]) => ({
+      search,
+      replace,
+      isRegex: useRegex
+    }));
 
-    // Collect all replacements to perform
-    const allReplacements = [];
-
-    // First, automatically replace detected customer values
-    if (detectedCustomer) {
-      log('processPartialReplace: Detected customer, applying automatic replacements:', detectedCustomer);
-      
-      // Add customer name replacement
-      if (detectedCustomer.name) {
-        allReplacements.push({
-          search: detectedCustomer.name,
-          replace: getCustomerValue('name'),
-          isRegex: false,
-          description: 'auto customer name'
-        });
-      }
-      
-      // Add customer domain replacement
-      if (detectedCustomer.domain) {
-        allReplacements.push({
-          search: detectedCustomer.domain,
-          replace: getCustomerValue('domain'),
-          isRegex: false,
-          description: 'auto customer domain'
-        });
-      }
-      
-      // Add related words replacements (only if relatedWordsMode is explicitly configured)
-      if (detectedCustomer.relatedWords && detectedCustomer.relatedWords.length > 0 && options.relatedWordsMode) {
-        log(`Adding ${detectedCustomer.relatedWords.length} related words for replacement:`, detectedCustomer.relatedWords);
-        
-        const relatedWordsMode = options.relatedWordsMode;
-        log(`Related words mode: ${relatedWordsMode}`);
-        
-        detectedCustomer.relatedWords.forEach((relatedWord, index) => {
-          let replacement;
-          
-          if (relatedWordsMode === 'fixed') {
-            // Use fixed replacement string
-            replacement = options.relatedWordsReplacement || '[REDACTED]';
-          } else if (relatedWordsMode === 'scramble') {
-            // Scramble the related word
-            const scrambleOptions = options.relatedWordsScrambleOptions || {};
-            replacement = scrambleText(relatedWord, scrambleOptions);
-          } else if (relatedWordsMode === 'smart') {
-            // Smart mode - simple generic replacement
-            replacement = '[REDACTED]';
-          }
-          
-          allReplacements.push({
-            search: relatedWord,
-            replace: replacement,
-            isRegex: false,
-            description: `auto related word (${relatedWordsMode}): ${relatedWord}`
-          });
-          
-          log(`Related word "${relatedWord}" → "${replacement}" (mode: ${relatedWordsMode})`);
-        });
-      }
-      
-      // Add customer ID replacement (if different from domain)
-      if (detectedCustomer.id && detectedCustomer.id !== detectedCustomer.domain) {
-        allReplacements.push({
-          search: detectedCustomer.id,
-          replace: getCustomerValue('domain'),
-          isRegex: false,
-          description: 'auto customer ID'
-        });
-      }
-    }
-
-    // Add manual replacements from config
-    Object.entries(replacements).forEach(([searchPattern, replaceValue]) => {
-      try {
-        // Process replacement value for customer-specific placeholders
-        let processedReplaceValue = replaceValue;
-        
-        // Handle customer value placeholders like {customerName}, {customerDomain}
-        const customerMatches = replaceValue.match(/\{(customerName|customerDomain|customerId)\}/g);
-        if (customerMatches) {
-          customerMatches.forEach(match => {
-            const valueType = match.slice(1, -1);
-            let customerValue;
-            
-            switch (valueType) {
-              case 'customerName':
-                customerValue = getCustomerValue('name');
-                break;
-              case 'customerDomain':
-                customerValue = getCustomerValue('domain');
-                break;
-              case 'customerId':
-                customerValue = getCustomerValue('id');
-                break;
-              default:
-                customerValue = match;
-            }
-            
-            processedReplaceValue = processedReplaceValue.replace(match, customerValue);
-          });
-        }
-        
-        // Handle function placeholders like {generateRandomAuthorName}
-        const functionMatches = replaceValue.match(/\{(\w+)\}/g);
-        if (functionMatches) {
-          functionMatches.forEach(match => {
-            const functionName = match.slice(1, -1);
-            if (replacementFunctions[functionName]) {
-              try {
-                const functionResult = executeReplacementFunction(functionName, {});
-                processedReplaceValue = processedReplaceValue.replace(match, functionResult);
-              } catch (err) {
-                error(`Error executing function ${functionName} in partial replace:`, err);
-              }
-            }
-          });
-        }
-
-        allReplacements.push({
-          search: searchPattern,
-          replace: processedReplaceValue,
-          isRegex: useRegex,
-          description: 'manual replacement'
-        });
-        
-      } catch (err) {
-        error(`Error processing replacement pattern "${searchPattern}":`, err);
-      }
-    });
-
-    // Apply all replacements while preserving HTML structure
     if (allReplacements.length > 0) {
-      hasChanges = replaceTextInElement(element, allReplacements, caseSensitive);
-    }
-
-    if (hasChanges) {
-      log('processPartialReplace: Successfully applied text replacements while preserving HTML');
+      replaceTextInElement(element, allReplacements, caseSensitive);
     }
   }
 
-  // Helper function to replace text content while preserving HTML structure
   function replaceTextInElement(element, replacements, caseSensitive = false) {
     let hasChanges = false;
 
     function processNode(node) {
       if (node.nodeType === Node.TEXT_NODE) {
-        // Process text nodes only
         let text = node.textContent;
         let originalText = text;
 
-        replacements.forEach(({ search, replace, isRegex, description }) => {
+        replacements.forEach(({ search, replace, isRegex }) => {
           try {
-            let newText;
-            if (isRegex) {
-              const flags = caseSensitive ? 'g' : 'gi';
-              const regex = new RegExp(search, flags);
-              newText = text.replace(regex, replace);
-            } else {
-              // Escape special regex characters for literal matching
-              const escapedPattern = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const flags = caseSensitive ? 'g' : 'gi';
-              const regex = new RegExp(escapedPattern, flags);
-              newText = text.replace(regex, replace);
-            }
+            const flags = caseSensitive ? 'g' : 'gi';
+            const pattern = isRegex ? search : search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const newText = text.replace(new RegExp(pattern, flags), replace);
 
             if (newText !== text) {
               text = newText;
-              log(`Text replacement (${description}): "${search}" → "${replace}"`);
+              log(`Text replacement: "${search}" -> "${replace}"`);
             }
           } catch (err) {
             error(`Error in text replacement for "${search}":`, err);
@@ -1063,12 +681,7 @@
           hasChanges = true;
         }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
-        // Recursively process child nodes of elements
-        // Create a copy of childNodes since the list can change during processing
-        const childNodes = Array.from(node.childNodes);
-        childNodes.forEach(childNode => {
-          processNode(childNode);
-        });
+        Array.from(node.childNodes).forEach(processNode);
       }
     }
 
@@ -1098,43 +711,26 @@
   }
 
   function injectCSSRules(cssRules, styleId) {
-    // Check if style already exists
-    let styleElement = document.getElementById(styleId);
-    if (styleElement) {
-      log(`CSS already injected for ${styleId}, skipping`);
-      return;
-    }
+    if (document.getElementById(styleId)) return;
 
-    // Create CSS text from rules
-    let cssText = '';
-    cssRules.forEach(rule => {
-      if (rule.selector && rule.properties) {
-        cssText += `${rule.selector} {\n`;
-        Object.entries(rule.properties).forEach(([property, value]) => {
-          // Ensure !important is added if not present for critical styles
-          const importantValue = value.includes('!important') ? value : `${value}`;
-          cssText += `  ${property}: ${importantValue};\n`;
-        });
-        cssText += '}\n\n';
-      }
-    });
+    const cssText = cssRules
+      .filter(rule => rule.selector && rule.properties)
+      .map(rule => {
+        const props = Object.entries(rule.properties)
+          .map(([prop, val]) => `  ${prop}: ${val};`)
+          .join('\n');
+        return `${rule.selector} {\n${props}\n}`;
+      })
+      .join('\n\n');
 
-    if (cssText) {
-      // Create and inject style element
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      styleElement.setAttribute('data-redactosaurus', 'true');
-      styleElement.textContent = cssText;
-      
-      // Insert into head as early as possible
-      if (document.head) {
-        document.head.appendChild(styleElement);
-      } else {
-        document.documentElement.appendChild(styleElement);
-      }
-      
-      log(`Injected CSS rules for ${styleId}:`, cssRules.length, 'rules');
-    }
+    if (!cssText) return;
+
+    const styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    styleElement.setAttribute('data-redactosaurus', 'true');
+    styleElement.textContent = cssText;
+    (document.head || document.documentElement).appendChild(styleElement);
+    log(`Injected ${cssRules.length} CSS rules for ${styleId}`);
   }
 
   async function loadAndInjectCSSFiles(cssFiles, transformationName) {
@@ -1181,7 +777,6 @@
     if (!element.textContent.trim()) return;
 
     const { 
-      scrambleAfterReplace = true,
       skipElementsContaining = [],
       preserveCase = true,
       preservePunctuation = true,
@@ -1189,50 +784,58 @@
       preserveLength = true
     } = options;
 
-    // Check if element contains children we should skip
     const hasImportantChildren = skipElementsContaining.some(tag => 
       element.querySelector(tag)
     );
-    
-    if (hasImportantChildren) {
-      log('Skipping element with important children:', element);
-      return;
+    if (hasImportantChildren) return;
+
+    element.textContent = scrambleText(element.textContent, {
+      preserveCase,
+      preservePunctuation,
+      preserveSpaces,
+      preserveLength
+    });
+  }
+
+  // === GLOBAL TEXT SWEEP ===
+
+  function sweepTextNodes() {
+    if (!detectedCustomer || !isEnabled || !document.body) return;
+
+    const realId = detectedCustomer.realId;
+    if (!realId) return;
+
+    const fakeDomain = detectedCustomer.domain;
+    const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const patterns = [escape(realId)];
+    if (previousFakeDomain && previousFakeDomain !== fakeDomain) {
+      patterns.push(escape(previousFakeDomain));
+    }
+    const regex = new RegExp(patterns.join('|'), 'gi');
+
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          if (node.parentElement?.closest('[data-redactosaurus]')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    let node;
+    while (node = walker.nextNode()) {
+      const text = node.textContent;
+      if (!regex.test(text)) continue;
+      regex.lastIndex = 0;
+      node.textContent = text.replace(regex, fakeDomain);
     }
 
-    let text = element.textContent;
-
-    // First, replace any customer-specific values if detected
-    if (detectedCustomer) {
-      // Replace customer name variations
-      if (detectedCustomer.name) {
-        const nameRegex = new RegExp(detectedCustomer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        text = text.replace(nameRegex, getCustomerValue('name'));
-      }
-      
-      // Replace customer domain variations
-      if (detectedCustomer.domain) {
-        const domainRegex = new RegExp(detectedCustomer.domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        text = text.replace(domainRegex, getCustomerValue('domain'));
-      }
-      
-      // Replace customer ID variations
-      if (detectedCustomer.id) {
-        const idRegex = new RegExp(detectedCustomer.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        text = text.replace(idRegex, getCustomerValue('name'));
-      }
-    }
-
-    // Then scramble the text if requested
-    if (scrambleAfterReplace) {
-      text = scrambleText(text, {
-        preserveCase,
-        preservePunctuation,
-        preserveSpaces,
-        preserveLength
-      });
-    }
-
-    element.textContent = text;
+    previousFakeDomain = fakeDomain;
   }
 
   // === CONTENT HIDING & REVEALING ===
@@ -1358,6 +961,9 @@
     
     log(`=== PROCESSING CYCLE #${processingCounter} START ===`);
 
+    checkForUrlChange();
+    sweepTextNodes();
+
     let totalElementsFound = 0;
     let totalElementsProcessed = 0;
     let totalElementsSkipped = 0;
@@ -1424,34 +1030,22 @@
   }
 
   function cleanupOrphanedElements() {
-    // Remove tracking for elements that are no longer in the DOM
-    let cleanedCount = 0;
-    const elementsToRemove = [];
-    
-    // Check processed elements map
+    const orphans = new Set();
+
     for (const [element] of processedElementsMap) {
-      if (!document.contains(element)) {
-        elementsToRemove.push(element);
-        cleanedCount++;
-      }
+      if (!document.contains(element)) orphans.add(element);
     }
-    
-    // Check content hashes map
     for (const [element] of elementContentHashes) {
-      if (!document.contains(element) && !elementsToRemove.includes(element)) {
-        elementsToRemove.push(element);
-        cleanedCount++;
-      }
+      if (!document.contains(element)) orphans.add(element);
     }
-    
-    // Remove orphaned elements from all tracking
-    elementsToRemove.forEach(element => {
+
+    orphans.forEach(element => {
       processedElementsMap.delete(element);
       elementContentHashes.delete(element);
     });
-    
-    if (cleanedCount > 0) {
-      log(`Cleaned up ${cleanedCount} orphaned elements from tracking and content hashes`);
+
+    if (orphans.size > 0) {
+      log(`Cleaned up ${orphans.size} orphaned elements`);
     }
   }
 
@@ -1511,7 +1105,7 @@
   // === CONFIGURATION & STATE ===
 
   async function loadConfiguration() {
-    const maxRetries = config?.settings?.maxRetries ?? 10; // Default fallback
+    const maxRetries = config?.settings?.maxRetries ?? 10;
     let retryCount = 0;
 
     while (maxRetries === 0 || retryCount < maxRetries) {
@@ -1530,14 +1124,14 @@
         retryCount++;
         
         if (maxRetries === 0) {
-          error(`Failed to load configuration (attempt ${retryCount}), retrying indefinitely:`, err);
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          error(`Failed to load configuration (attempt ${retryCount}), retrying:`, err);
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } else if (retryCount >= maxRetries) {
           error(`Failed to load configuration after ${maxRetries} attempts:`, err);
           return false;
         } else {
           error(`Failed to load configuration (attempt ${retryCount}/${maxRetries}), retrying:`, err);
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     }
@@ -1547,12 +1141,27 @@
 
   async function loadExtensionState() {
     try {
-      const result = await chrome.storage.local.get(['enabled']);
-      isEnabled = result.enabled !== false; // Default to true
-      log('Extension state loaded:', { isEnabled });
+      const result = await chrome.storage.local.get(['enabled', 'publisherName', 'publisherDomain']);
+      isEnabled = result.enabled !== false;
+      if (result.publisherName) FAKE_IDENTITY.name = result.publisherName;
+      if (result.publisherDomain) FAKE_IDENTITY.domain = result.publisherDomain;
+      log('Extension state loaded:', { isEnabled, identity: FAKE_IDENTITY });
     } catch (err) {
       error('Failed to load extension state:', err);
       isEnabled = true;
+    }
+  }
+
+  function checkForUrlChange() {
+    const currentUrl = window.location.href;
+    if (currentUrl === lastDetectedUrl) return;
+
+    lastDetectedUrl = currentUrl;
+    const newCustomer = detectCustomerFromUrl();
+    if (newCustomer && newCustomer.realId !== detectedCustomer?.realId) {
+      log('SPA navigation detected, new customer:', newCustomer);
+      detectedCustomer = newCustomer;
+      resetProcessedElements();
     }
   }
 
@@ -1572,22 +1181,14 @@
 
     await loadExtensionState();
 
-    // FIRST THING: Detect customer from URL
     detectedCustomer = detectCustomerFromUrl();
-    if (detectedCustomer) {
-      log('Customer detection complete:', detectedCustomer);
-    } else {
-      log('No customer detected, will use fallback values');
-    }
+    lastDetectedUrl = window.location.href;
+    log(detectedCustomer ? 'Customer detected:' : 'No customer detected', detectedCustomer);
 
     if (isEnabled) {
-      // Phase 1: Hide content immediately
       hideContentImmediately();
-
-      // Phase 1.5: Inject global CSS immediately
       injectGlobalCSS();
 
-      // Phase 2: Wait for DOM to be ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', continueInitialization);
       } else {
@@ -1602,18 +1203,10 @@
   function continueInitialization() {
     if (!isEnabled) return;
 
-    log('Continuing initialization after DOM ready...');
-
-    // Wait for document.body with retry logic
     waitForBody(async () => {
-      // Process existing content
       await processAllElements();
-
-      // Set up continuous processing and mutation observer
       setupMutationObserver();
       startContinuousProcessing();
-
-      // Reveal content after initial processing
       setTimeout(revealAnonymizedContent, 300);
     });
   }
@@ -1665,7 +1258,6 @@
           stopContinuousProcessing();
           revealAnonymizedContent();
           hideDemoModeIndicator();
-          // Reset processed elements to allow re-processing when re-enabled
           resetProcessedElements();
         }
         
@@ -1681,15 +1273,11 @@
         break;
 
       case 'updateHeadlineMode':
-        // Update the config setting
         if (config && config.settings) {
           config.settings.headlineMode = request.mode;
           log(`Headline mode updated to: ${request.mode}`);
-          
-          // Reset processed elements to force re-processing with new mode
           resetProcessedElements();
-          
-          // Reprocess all elements immediately if enabled
+
           if (isEnabled) {
             hideContentImmediately();
             await processAllElements();
@@ -1702,16 +1290,33 @@
         }
         break;
 
+      case 'updatePublisher':
+        previousFakeDomain = FAKE_IDENTITY.domain;
+
+        FAKE_IDENTITY.name = request.name || 'Demo Network';
+        FAKE_IDENTITY.domain = request.domain || 'demosite.test';
+
+        if (detectedCustomer) {
+          detectedCustomer.name = FAKE_IDENTITY.name;
+          detectedCustomer.domain = FAKE_IDENTITY.domain;
+        }
+
+        resetProcessedElements();
+        if (isEnabled) {
+          hideContentImmediately();
+          await processAllElements();
+          setTimeout(revealAnonymizedContent, 300);
+        }
+        sendResponse({ success: true });
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown action' });
     }
     
-    return true; // Keep message channel open for async responses
+    return true;
   });
 
-  // === STARTUP ===
-
-  // Start initialization immediately
   initialize();
 
 })();

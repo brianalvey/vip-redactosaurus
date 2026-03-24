@@ -13,6 +13,8 @@ chrome.runtime.onInstalled.addListener((details) => {
       enabled: true,
       wakeLockEnabled: true,
       headlineMode: 'replace',
+      publisherName: '',
+      publisherDomain: '',
       installDate: Date.now()
     });
     console.log('[VIP Redactosaurus] Default settings initialized');
@@ -47,7 +49,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case 'updateHeadlineMode':
       handleUpdateHeadlineMode(request, sendResponse);
-      return true; // Keep message channel open
+      return true;
+
+    case 'updatePublisher':
+      handleUpdatePublisher(request, sendResponse);
+      return true;
 
     default:
       console.warn('[VIP Redactosaurus] Unknown action:', request.action);
@@ -99,13 +105,15 @@ async function handleToggle(request, sendResponse) {
 // Handle status requests from popup
 async function handleGetStatus(sendResponse) {
   try {
-    const result = await chrome.storage.local.get(['enabled', 'wakeLockEnabled', 'headlineMode', 'installDate']);
+    const result = await chrome.storage.local.get(['enabled', 'wakeLockEnabled', 'headlineMode', 'publisherName', 'publisherDomain', 'installDate']);
     
     sendResponse({ 
       success: true,
-      enabled: result.enabled !== false, // Default to true
+      enabled: result.enabled !== false,
       wakeLockEnabled: result.wakeLockEnabled || false,
       headlineMode: result.headlineMode || 'replace',
+      publisherName: result.publisherName || '',
+      publisherDomain: result.publisherDomain || '',
       installDate: result.installDate,
       timestamp: Date.now()
     });
@@ -190,7 +198,19 @@ async function handleUpdateHeadlineMode(request, sendResponse) {
   }
 }
 
-// Handle tab updates (optional enhancement)
+async function handleUpdatePublisher(request, sendResponse) {
+  try {
+    await chrome.storage.local.set({
+      publisherName: request.name || '',
+      publisherDomain: request.domain || ''
+    });
+    sendResponse({ success: true });
+  } catch (error) {
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Handle tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
     console.log(`[VIP Redactosaurus] Tab ${tabId} loaded:`, tab.url);

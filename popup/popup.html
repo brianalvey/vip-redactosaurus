@@ -5,277 +5,175 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VIP Redactosaurus</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      width: 320px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      line-height: 1.4;
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-size: 13px;
     }
-    
+
     .header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    
-    .header h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 700;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    
-    .header .emoji {
-      font-size: 24px;
+
+    .header .dino { font-size: 22px; }
+
+    .header .title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
     }
-    
-    .header p {
-      margin: 8px 0 0 0;
-      font-size: 13px;
-      opacity: 0.85;
-      font-weight: 400;
+
+    .header .subtitle {
+      font-size: 11px;
+      color: #888;
+      margin-top: 1px;
     }
-    
-    .main-control {
-      background: rgba(255, 255, 255, 0.12);
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(10px);
+
+    .section {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    
-    .toggle-container {
+
+    .section:last-of-type { border-bottom: none; }
+
+    .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
     }
-    
-    .toggle-label {
-      font-weight: 600;
-      font-size: 16px;
+
+    .row + .row { margin-top: 10px; }
+
+    .row-label {
+      font-size: 13px;
+      color: #ccc;
     }
-    
-    .toggle-switch {
-      position: relative;
-      width: 56px;
-      height: 28px;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 14px;
+
+    .toggle {
+      width: 40px;
+      height: 22px;
+      background: #333;
+      border-radius: 11px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
     }
-    
-    .toggle-switch.active {
-      background: #4CAF50;
-      border-color: #4CAF50;
-    }
-    
-    .toggle-switch::after {
+
+    .toggle.active { background: #4caf50; }
+
+    .toggle::after {
       content: '';
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 20px;
-      height: 20px;
-      background: white;
+      width: 18px;
+      height: 18px;
+      background: #fff;
       border-radius: 50%;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s;
     }
-    
-    .toggle-switch.active::after {
-      transform: translateX(28px);
+
+    .toggle.active::after { transform: translateX(18px); }
+
+    .field { margin-top: 10px; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    
-    .select-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .select-label {
-      font-weight: 600;
-      font-size: 14px;
-      opacity: 0.95;
-    }
-    
-    .mode-select {
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.3s ease;
-      font-family: inherit;
+
+    .field input, .field select {
       width: 100%;
-    }
-    
-    .mode-select:hover {
-      background: rgba(255, 255, 255, 1);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-    
-    .mode-select:focus {
-      border-color: #4CAF50;
-      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-    }
-    
-    .status {
-      text-align: center;
+      background: #16162a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: #e0e0e0;
       font-size: 13px;
-      font-weight: 500;
-      margin: 0;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
     }
-    
-    .status.enabled {
-      color: #a8f5a8;
+
+    .field input:focus, .field select:focus {
+      border-color: #4caf50;
     }
-    
-    .status.disabled {
-      color: #ffb3b3;
-    }
-    
-    .info-section {
-      background: rgba(255, 255, 255, 0.08);
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 16px;
-    }
-    
-    .info-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 600;
-      opacity: 0.9;
-    }
-    
-    .features-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      font-size: 11px;
-    }
-    
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      opacity: 0.8;
-    }
-    
-    .feature-item .icon {
-      font-size: 12px;
-    }
-    
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      opacity: 0.7;
-      margin-top: 8px;
-    }
-    
-    .loading {
-      opacity: 0.6;
-    }
-    
-    .version {
+
+    .field input::placeholder { color: #555; }
+
+    .status-bar {
+      padding: 8px 16px;
       text-align: center;
-      font-size: 10px;
-      opacity: 0.5;
-      margin-top: 12px;
+      font-size: 11px;
+      color: #888;
     }
-    
+
+    .status-bar.active { color: #4caf50; }
+    .status-bar.inactive { color: #f44336; }
+
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
+      50% { opacity: 0.5; }
     }
-    
-    .processing {
-      animation: pulse 1.5s infinite;
-    }
+    .processing { animation: pulse 1s infinite; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1><span class="emoji">🦕</span> VIP Redactosaurus</h1>
-    <p>Safe product demos without exposing private customer data</p>
-  </div>
-  
-  <div class="main-control">
-    <div class="toggle-container">
-      <span class="toggle-label">Anonymization</span>
-      <div class="toggle-switch" id="toggleSwitch"></div>
-    </div>
-    
-    <div class="toggle-container">
-      <span class="toggle-label">Keep screen awake</span>
-      <div class="toggle-switch" id="wakeLockSwitch"></div>
-    </div>
-    
-    <div class="status loading" id="status">
-      Loading extension status...
+    <span class="dino">🦕</span>
+    <div>
+      <div class="title">Redactosaurus</div>
+      <div class="subtitle">Content anonymization for demos</div>
     </div>
   </div>
-  
-  <div class="main-control">
-    <div class="select-container">
-      <label class="select-label">📰 Headline Mode</label>
-      <select id="headlineModeSelect" class="mode-select">
+
+  <div class="section">
+    <div class="row">
+      <span class="row-label">Anonymization</span>
+      <div class="toggle" id="toggleSwitch"></div>
+    </div>
+    <div class="row">
+      <span class="row-label">Keep screen awake</span>
+      <div class="toggle" id="wakeLockSwitch"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="field">
+      <label>Publisher name</label>
+      <input type="text" id="publisherName" placeholder="Demo Network">
+    </div>
+    <div class="field">
+      <label>Publisher domain</label>
+      <input type="text" id="publisherDomain" placeholder="demosite.test">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="field">
+      <label>Headline mode</label>
+      <select id="headlineModeSelect">
         <option value="replace">Replace with random headlines</option>
         <option value="scramble">Scramble existing headlines</option>
       </select>
     </div>
   </div>
-  
-  <div class="info-section">
-    <h3>🛡️ Active Protections</h3>
-    <div class="features-grid">
-      <div class="feature-item">
-        <span class="icon">📝</span>
-        <span>Text scrambling</span>
-      </div>
-      <div class="feature-item">
-        <span class="icon">👤</span>
-        <span>Name replacement</span>
-      </div>
-      <div class="feature-item">
-        <span class="icon">🖼️</span>
-        <span>Image blurring</span>
-      </div>
-      <div class="feature-item">
-        <span class="icon">⚡</span>
-        <span>Real-time processing</span>
-      </div>
-      <div class="feature-item">
-        <span class="icon">🚫</span>
-        <span>No content flash</span>
-      </div>
-      <div class="feature-item">
-        <span class="icon">🔄</span>
-        <span>SPA compatible</span>
-      </div>
-    </div>
-    
-    <div class="stats">
-      <span id="processedCount">Elements: --</span>
-      <span id="uptime">Uptime: --</span>
-    </div>
-  </div>
-  
-  <div class="version">v1.0.0 - Built for secure demos</div>
-  
+
+  <div class="status-bar" id="status">Loading...</div>
+
   <script src="popup.js"></script>
 </body>
 </html>

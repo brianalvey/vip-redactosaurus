@@ -8,97 +8,15 @@
   },
   "urlPatterns": {
     "parsely": {
-      "pattern": "https://dash\\.parsely\\.com/([^/]+)/.*",
-      "customerIdGroup": 1
-    },
-    "parsely_direct": {
-      "pattern": "https://([^/]+\\.[^/]+)/.*",
+      "pattern": "https://dash\\.parsely\\.com/([^/?]+)",
       "customerIdGroup": 1
     },
     "hosting-dashboard": {
-      "pattern": "dashboard\\.wpvip\\.com/apps/([^/]+)/.*",
-      "customerIdGroup": 2
-      
-    }
-  },
-  "customerMapping": {
-    "1": {
-      "name": "Parsely Analytics",
-      "customers": {
-        "nypost.com": {
-          "customerName": "NY Post",
-          "customerDomain": "nypost.com",
-          "relatedWords": ["New York Post", "nypost", "post", "new york", "nyp", "page six", "pagesix"]
-        },
-        "theonion.com": {
-          "customerName": "The Onion",
-          "customerDomain": "theonion.com",
-          "relatedWords": ["onion", "theonion"]
-        },
-        "yahoo.vip.net": {
-          "customerName": "Yahoo Inc",
-          "customerDomain": "yahoo.com",
-          "relatedWords": ["yahoo", "yahoo!", "verizon media", "oath"]
-        },
-        "cnn.vip.net": {
-          "customerName": "CNN Digital",
-          "customerDomain": "cnn.com",
-          "relatedWords": ["cnn", "cable news", "turner", "warner", "breaking news"]
-        }
-      }
-    },
-    "2": {
-      "name": "VIP Hosting Platform",
-      "customers": {
-        "nytimes": {
-          "customerName": "The New York Times",
-          "customerDomain": "nytimes.com",
-          "relatedWords": ["times", "new york", "ny", "grey lady", "nyt", "pulitzer", "manhattan"]
-        },
-        "washpost": {
-          "customerName": "The Washington Post",
-          "customerDomain": "washingtonpost.com",
-          "relatedWords": ["washington", "wapo", "post", "bezos", "democracy dies", "dc"]
-        },
-        "techcrunch": {
-          "customerName": "TechCrunch Media",
-          "customerDomain": "techcrunch.com",
-          "relatedWords": ["techcrunch", "crunch", "startup", "disrupt", "silicon valley", "vc"]
-        }
-      }
+      "pattern": "dashboard\\.wpvip\\.com/apps/([^/?]+)",
+      "customerIdGroup": 1
     }
   },
   "transformations": [
-    {
-      "name": "customer_names",
-      "type": "customerReplace", 
-      "selectors": [
-        ".customer-name",
-        ".site-name", 
-        ".publisher-name",
-        "[data-customer-name]",
-        ".site-title",
-        ".brand-name"
-      ],
-      "options": {
-        "replaceWith": "customerName",
-        "fallback": "Customer X"
-      }
-    },
-    {
-      "name": "customer_domains",
-      "type": "customerReplace",
-      "selectors": [
-        ".domain",
-        ".website",
-        "[data-domain]",
-        ".site-url"
-      ],
-      "options": {
-        "replaceWith": "customerDomain", 
-        "fallback": "customerx.com"
-      }
-    },
     {
       "name": "headlines_replace",
       "type": "functionReplace",
@@ -107,9 +25,7 @@
       "enabledValue": "replace",
       "selectors": [
         "a.post-title",
-        "div.title h1",
-        "div.metas-listing div.title a[href*='/campaigns/id/']",
-        "a.listing-item-title"
+        "a[href*='/campaigns/id/']"
       ],
       "options": {
         "functionName": "generateRandomHeadline",
@@ -124,8 +40,7 @@
       "enabledValue": "scramble",
       "selectors": [
         "a.post-title",
-        "div.title h1",
-        "div.metas-listing div.title a[href*='/campaigns/id/']"
+        "a[href*='/campaigns/id/']"
       ],
       "options": {
         "preserveCase": true,
@@ -140,8 +55,8 @@
       "name": "author_names",
       "type": "functionReplace",
       "selectors": [
-        "p.author-name", "p.byline", "div.post-metas div.author a", "div.byline span.byline-meta span a",
-        "div.metas-listing div.title a[href*='/authors/']"
+        "div.author a[href*='/authors/']",
+        "a[href*='/authors/']"
       ],
       "options": {
         "functionName": "generateRandomAuthorName",
@@ -150,53 +65,43 @@
             "Aisha", "Benjamin", "Carmen", "Dmitri", "Elena", "Finn", "Grace", "Hassan", "Isabella", "Jin", "Kenji", "Lucia", "Miguel", "Nora", "Omar", "Priya", "Quinn", "Raj", "Sofia", "Tomoko", "Ulrich", "Veronica", "Wei", "Ximena", "Yuki", "Zara", "Adrian", "Beatrice", "Carlos", "Diana", "Ethan", "Fatima", "Gabriel", "Hana", "Ivan", "Jasmine", "Klaus", "Leila", "Marco", "Natasha", "Oscar", "Petra", "Quincy", "Rosa", "Sebastian", "Tara", "Uri", "Victoria", "Wolfgang", "Xander", "Yvette", "Zachary"
           ],
           "lastNames": [
-            "Anderson", "Blackwood", "Chen", "Delacroix", "Eriksson", "Fernandez", "Gonzalez", "Hoffman", "Ivanov", "Jackson", "Kim", "Lopez", "Murphy", "Nakamura", "O'Brien", "Patel", "Quinn", "Rodriguez", "Singh", "Thompson", "Ueda", "Volkov", "Williams", "Xu", "Yamamoto", "Ziegler", "Abramovich", "Brennan", "Castillo", "Davies", "Engström", "Fischer", "García", "Hashimoto", "Ibrahim", "Jensen", "Kowalski", "Laurent", "Martínez", "Nielsen", "Okafor", "Petrov", "Qureshi", "Rossi", "Swanson", "Taylor", "Underwood", "Varga", "Walsh", "Xiang", "Yoshida", "Zimmerman"
+            "Anderson", "Blackwood", "Chen", "Delacroix", "Eriksson", "Fernandez", "Gonzalez", "Hoffman", "Ivanov", "Jackson", "Kim", "Lopez", "Murphy", "Nakamura", "O'Brien", "Patel", "Quinn", "Rodriguez", "Singh", "Thompson", "Ueda", "Volkov", "Williams", "Xu", "Yamamoto", "Ziegler", "Abramovich", "Brennan", "Castillo", "Davies", "Fischer", "Hashimoto", "Ibrahim", "Jensen", "Kowalski", "Laurent", "Nielsen", "Okafor", "Petrov", "Qureshi", "Rossi", "Swanson", "Taylor", "Underwood", "Varga", "Walsh", "Xiang", "Yoshida", "Zimmerman"
           ]
         }
       }
     },
     {
-      "name": "company_names",
+      "name": "section_names",
       "type": "functionReplace",
       "selectors": [
-        ".company-name",
-        ".organization",
-        ".corp-name"
+        "div.section a[href*='/sections/']",
+        "a[href*='/sections/']"
       ],
       "options": {
-        "functionName": "generateRandomCompany",
-        "functionArgs": {
-          "prefixes": ["Global", "Dynamic", "Prime", "Elite", "Advanced", "Strategic"],
-          "suffixes": ["Corp", "Inc", "LLC", "Solutions", "Industries", "Group"],
-          "types": ["Media", "Tech", "Digital", "Systems", "Networks", "Analytics"]
-        }
-      }
-    },
-    {
-      "name": "email_addresses",
-      "type": "functionReplace",
-      "selectors": [
-        ".email",
-        "[href^='mailto:']",
-        ".contact-email"
-      ],
-      "options": {
-        "functionName": "generateRandomEmail",
-        "functionArgs": {
-          "usernames": ["contact", "info", "hello", "support", "team", "admin", "sales"],
-          "domains": ["example.com", "demo-site.com", "sample.org", "test.net", "placeholder.co"]
-        }
+        "functionName": "generateRandomSectionName",
+        "functionArgs": {}
       }
     },
     {
       "name": "article_images",
       "type": "blur",
       "selectors": [
-        "div.thumb img",
-        "img.thumbnail"
+        "div.thumb img"
       ],
       "options": {
-        "blurAmount": "2px"
+        "blurAmount": "3px"
+      }
+    },
+    {
+      "name": "publisher_name",
+      "type": "functionReplace",
+      "selectors": [
+        "a.publisher-link span.publisher-info"
+      ],
+      "options": {
+        "functionName": "generatePublisherName",
+        "functionArgs": {},
+        "preserveChildren": true
       }
     },
     {
@@ -212,112 +117,15 @@
         "preserveLength": true,
         "preserveEnds": true
       }
-    },
-    {
-      "name": "customer_data_replacement",
-      "type": "partialReplace",
-      "selectors": [
-        "div.post-metas a",
-        "#tooltip",
-        "a.publisher-link span.publisher-info",
-        "div.sitepicker div.publisher span.site-name-wrapper span",
-        "div.sitepicker div.toggle-content div span",
-        "span.site-name-wrapper span.highlighted",
-        "div.debug-section"
-      ],
-      "options": {
-        "replacements": {
-          "nypost.com": "customerx.com",
-          "NY Post": "Customer X",
-          "{customerDomain}": "customerx.com",
-          "{customerName}": "Customer X"
-        },
-        "caseSensitive": false,
-        "useRegex": false,
-        "preserveHtml": true
-      }
-    },
-    {
-      "name": "related_words_replacement",
-      "type": "partialReplace",
-      "selectors": [
-        "div.metas-listing div.title a[href*='/referrers/internal/']"
-      ],
-      "options": {
-        "caseSensitive": false,
-        "useRegex": false,
-        "preserveHtml": true,
-        "relatedWordsMode": "fixed",
-        "_altRelatedWordsMode": "scramble",
-        "relatedWordsReplacement": "[REDACTED]",
-        "relatedWordsScrambleOptions": {
-          "preserveCase": true,
-          "preservePunctuation": true,
-          "preserveSpaces": true,
-          "preserveLength": true,
-          "preserveEnds": false
-        }
-      }
-    },
-    {
-      "name": "regex_replacement_demo",
-      "type": "partialReplace",
-      "selectors": [
-        ".regex-test"
-      ],
-      "options": {
-        "replacements": {
-          "\\b\\d{4}\\b": "YYYY",
-          "\\b[A-Z]{2,}\\b": "[ACRONYM]",
-          "\\$\\d+(\\.\\d{2})?": "$XX.XX",
-          "\\b\\w+@\\w+\\.\\w+\\b": "email@example.com"
-        },
-        "caseSensitive": false,
-        "useRegex": true,
-        "preserveHtml": true
-      }
-    },
-    {
-      "name": "nav_pulldown_scramble",
-      "type": "scramble",
-      "selectors": [
-        "div.apikey-group a span span"
-      ],
-      "options": {
-        "preserveCase": true,
-        "preservePunctuation": true,
-        "preserveSpaces": true,
-        "preserveLength": true,
-        "preserveEnds": false
-      }
     }
   ],
   "globalCSS": {
     "enabled": true,
     "rules": [
       {
-        "selector": "div.navigation nav a.current",
-        "properties": {
-          "filter": "blur(0px) !important"
-        }
-      },
-      {
-        "selector": "div.navigation div.--current span PAUSE",
-        "properties": {
-          "color": "orange !important"
-        }
-      },
-      {
         "selector": "div.sitepicker div input.filter",
         "properties": {
           "color": "rgba(255, 0, 0, 0) !important"
-        }
-      },
-      {
-        "selector": "h2.subtitle::before PAUSE",
-        "properties": {
-          "content": "'🏢 '",
-          "color": "blue"
         }
       }
     ],

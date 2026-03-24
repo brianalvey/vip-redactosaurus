@@ -34,7 +34,7 @@
       "resources": [
         "assets/*", 
         "content/config.json",
-        "content/news_headlines.js"
+        "content/articles.js"
       ],
       "matches": [
         "https://dash.parsely.com/*",
