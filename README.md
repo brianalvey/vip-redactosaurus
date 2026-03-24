@@ -1,186 +1,143 @@
 # VIP Redactosaurus
 
-A Chrome extension that anonymizes specific content patterns on webpages **before they render**, allowing safe product demos that don't reveal private customer data. This extension prevents flashes of non-anonymized content, making it perfect for walkthrough videos and screen recordings.
+A Chrome extension that anonymizes Parse.ly dashboards before they render, enabling safe product demos without exposing customer data. Runs at `document_start` to prevent any flash of real content.
 
-## 🚀 Features
+## How It Works
 
-- **No Flash of Content**: Content is anonymized before the page loads
-- **Configurable Selectors**: Target content using CSS selectors, IDs, and XPath
-- **Multiple Transformation Types**:
-  - **Text Scrambling**: Can preserve case, punctuation, vowels, and spaces
-  - **Static Replacement**: Replace strings with preset alternatives via JavaScript functions
-  - **Image Blurring**: Blur sensitive images
-  - **Image Replacement**: Swap images with placeholders
-  - **Custom CSS Injection**: Apply arbitrary CSS rules with RGBA colors
-- **Dynamic Content Support**: Handles SPAs and dynamically loaded content
-- **Easy Toggle**: Enable/disable anonymization via popup
+Redaction happens in three layers, from broad to specific:
 
-## 🛠 Installation
+1. **Global text sweep** - A `TreeWalker` replaces every occurrence of the detected customer domain (e.g. `arstechnica.com`) with a fake domain (`demosite.test` by default) across all text nodes.
+2. **Href-pattern selectors** - Content like authors (`a[href*='/authors/']`) and sections (`a[href*='/sections/']`) is matched by URL structure rather than CSS classes, making it resilient to UI changes.
+3. **Structural selectors** - A few specific selectors handle elements where href matching isn't possible (image thumbnails, publisher name, site picker).
 
-1. **Clone or download** this repository
-2. **Replace placeholder assets**:
-   - Replace `assets/placeholder.jpg` with an actual placeholder image
-   - Replace icon files with actual PNG icons (16x16, 48x48, 128x128)
-3. **Load in Chrome**:
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode" (top right toggle)
-   - Click "Load unpacked" and select this folder
-4. **Configure** (optional):
-   - Edit `content/config.json` to customize selectors and transformations
+Customer detection is automatic. The extension reads the domain from the Parse.ly dashboard URL and generates a consistent fake identity for it.
 
-## ⚙️ Configuration
+## Installation
 
-The extension uses `content/config.json` to define what content to anonymize and how:
+1. Clone this repository
+2. Open `chrome://extensions/`, enable Developer mode
+3. Click "Load unpacked" and select this folder
 
-### Transformation Types
+## Extension Popup
 
-1. **`scramble`**: Randomizes text while preserving formatting
-   ```json
-   {
-     "type": "scramble",
-     "options": {
-       "preserveCase": true,
-       "preservePunctuation": true,
-       "preserveSpaces": true,
-       "preserveEnds": true,
-       "preserveVowels": true
-     }
-   }
-   ```
+The popup provides these controls:
 
-2. **`static_replacement`**: Replaces all of the contents
-   ```json
-   {
-     "name": "swap_nav_items",
-      "type": "replace_full",
-      "selectors": [
-        ".my-custom-class",
-        "#specific-id",
-        "[data-testid='sensitive-data']",
-        "img[src*='private']"
-      ],
-      "replacements": {
-        "contents": [
-          "Customer Name Goes Here"
-        ]
-      }
-   }
-   ```
+- **Anonymization** toggle (on/off)
+- **Keep screen awake** toggle (for live demos)
+- **Publisher name** and **Publisher domain** (defaults: "Demo Network" / "demosite.test")
+- **Headline mode** (replace with generated headlines, or scramble existing ones)
 
-3. **`dynamic_replacement`**: Replaces some of the contents with strings or functions
-   ```json
-   {
-     "name": "swap_names_in_headings",
-      "type": "replace_partial",
-      "selectors": [
-        ".my-custom-class",
-        "#specific-id",
-        "[data-testid='sensitive-data']",
-        "img[src*='private']"
-      ],
-      "replacements": {
-        "{customerDomain}": [
-          "customerx.com"
-        ],
-        "{customerName}": [
-          "{functionRandomNames}"
-        ]
-      }
-   }
-   ```
+Publisher name and domain are persisted and applied live without reloading.
 
-4. **`blur`**: Applies blur filter to images
-   ```json
-   {
-     "type": "blur",
-     "options": {
-       "blurAmount": "10px",
-       "fallbackImage": "assets/placeholder.jpg"
-     }
-   }
-   ```
+## Configuration
 
-5. **`replace_image`**: Swaps images with placeholders
-   ```json
-   {
-     "type": "replace_image",
-     "options": {
-       "replacementImage": "assets/placeholder.jpg",
-       "preserveDimensions": true
-     }
-   }
-   ```
+All transformation rules live in `content/config.json`.
 
-### Adding Custom Selectors
+### URL Patterns
 
-To target specific content, add selectors to the configuration:
+Define regex patterns to extract the customer ID from dashboard URLs:
 
 ```json
-{
-  "name": "custom_content",
-  "selectors": [
-    ".my-custom-class",
-    "#specific-id",
-    "[data-testid='sensitive-data']",
-    "img[src*='private']"
-  ],
-  "type": "scramble"
+"urlPatterns": {
+  "parsely": {
+    "pattern": "https://dash\\.parsely\\.com/([^/?]+)",
+    "customerIdGroup": 1
+  }
 }
 ```
 
-## 🎯 Usage
+### Transformation Types
 
-1. **Install the extension** (see Installation above)
-2. **Navigate to any webpage** where you want to anonymize content
-3. **Click the extension icon** in Chrome's toolbar
-4. **Toggle anonymization** on/off using the switch
-5. **Content is automatically anonymized** based on your configuration
-
-## 🔧 Customization
-
-### Adding New Transformation Types
-
-1. Add your transformation function to `transformers` object in `content/anonymizer.js`
-2. Add the transformation type to the `applyTransformation` function
-3. Update your `config.json` to use the new transformation type
-
-### Limiting this to Specific Websites
-
-Modify the `matches` field in `manifest.json` to target specific URLs:
+**`functionReplace`** - Replace element text using a named JS function. Supports `preserveChildren` to only replace direct text nodes.
 
 ```json
-"matches": [
-  "https://your-dashboard.com/*",
-  "https://app.yourcompany.com/*"
+{
+  "name": "author_names",
+  "type": "functionReplace",
+  "selectors": ["a[href*='/authors/']"],
+  "options": {
+    "functionName": "generateRandomAuthorName"
+  }
+}
+```
+
+**`scramble`** - Randomize existing text while preserving structure (case, punctuation, spacing, word length).
+
+```json
+{
+  "name": "seo_scramble",
+  "type": "scramble",
+  "selectors": ["div.google-key-label"],
+  "options": {
+    "preserveCase": true,
+    "preservePunctuation": true,
+    "preserveSpaces": true,
+    "preserveLength": true,
+    "preserveEnds": true
+  }
+}
+```
+
+**`blur`** - Apply a CSS blur filter to images.
+
+```json
+{
+  "name": "article_images",
+  "type": "blur",
+  "selectors": ["div.thumb img"],
+  "options": { "blurAmount": "3px" }
+}
+```
+
+### Available Replacement Functions
+
+| Function | Description |
+|---|---|
+| `generateRandomHeadline` | Returns a headline from `content/articles.js`, paired with its section per post row |
+| `generateRandomSectionName` | Returns the section from the same article entry as the headline |
+| `generateRandomAuthorName` | Generates a name from configurable first/last name lists |
+| `generatePublisherName` | Returns the configured publisher name |
+
+### Conditional Transformations
+
+Transformations can be toggled by a setting value. Headlines use this to switch between replace and scramble modes:
+
+```json
+{
+  "name": "headlines_replace",
+  "enabledSetting": "headlineMode",
+  "enabledValue": "replace",
+  ...
+}
+```
+
+## Content Data
+
+`content/articles.js` contains paired headline and section entries so that generated content stays contextually coherent within each post row:
+
+```json
+[
+  { "headline": "Severe Storms Sweep Northeast, Leaving Thousands Without Power", "section": "Weather" },
+  { "headline": "Tech Giants Face New Antitrust Push as Regulators Tighten Scrutiny", "section": "Technology" }
 ]
 ```
 
-## 🚨 Important Notes
+## Project Structure
 
-- **Content Script Timing**: The extension runs at `document_start` to prevent flash of non-anonymized content
-- **Dynamic Content**: Uses MutationObserver to handle SPAs and dynamically loaded content
-- **Performance**: Transformations are applied efficiently to avoid performance impact
-- **Privacy**: All processing happens locally in the browser
+```
+├── manifest.json              Chrome extension manifest (V3)
+├── background/background.js   Service worker for state and messaging
+├── popup/popup.html            Extension popup UI
+├── popup/popup.js              Popup logic
+├── content/redactosaurus.js    Content script (runs at document_start)
+├── content/config.json         Transformation rules
+├── content/articles.js         Paired headline + section data
+└── assets/                     Icons, CSS, placeholder images
+```
 
-## 🐛 Troubleshooting
+## Notes
 
-1. **Content not being anonymized**: Check your selectors in `config.json`
-2. **Extension not working**: Ensure it's enabled in `chrome://extensions/`
-3. **Images not loading**: Replace placeholder files with actual images
-4. **Performance issues**: Reduce the number of selectors or transformations
-
-## 📝 License
-
-This project is open source and available under the MIT License.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
----
-
-**Note**: Replace all placeholder files in the `assets/` directory with actual images before using the extension.
+- All processing is local. No data leaves the browser.
+- Uses `MutationObserver` and continuous polling to handle Parse.ly's SPA navigation.
+- SPA URL changes are detected automatically, re-applying redaction when switching between customer sites.
+- The `.test` TLD is IANA-reserved, so fake domains can never collide with real ones.
