@@ -27,7 +27,12 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "VIP Redactosaurus - Toggle Anonymization"
+    "default_title": "VIP Redactosaurus - Toggle Anonymization",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
   },
   "web_accessible_resources": [
     {
